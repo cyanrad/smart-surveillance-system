@@ -21,46 +21,62 @@ resnet = InceptionResnetV1(pretrained='vggface2').eval()
 
 
 def preprocess_images():
+    # Each image is associated with a class. 
+    # class is determined by subdirecotry, each class has an id
+    dataset = datasets.ImageFolder('./data')
+    dataset.idx_to_class = {i:c for c, i in dataset.class_to_idx.items()}
 
+    # unclear, used for batch processing when using a map for data
     def collate_fn(x):
         return x[0]
+    dataIter = DataLoader(dataset, collate_fn=collate_fn, num_workers=workers)
 
-    dataset = datasets.ImageFolder('./celeb_reorganized')
-    dataset.idx_to_class = {i:c for c, i in dataset.class_to_idx.items()}
-    loader = DataLoader(dataset, collate_fn=collate_fn, num_workers=workers)
-
-
-    encoded = []
-    identity = []
-    count = len(loader)
-
-    for x, y in loader:
+    face_embeddings_list = []
+    detected_classes = []
+    # for each `embeddeding` in `face_embedding_list`
+    # it's class is storred in the corresponding index in `detected_classes`
+    count = len(dataIter)
+    
+    print("generating face embeddings")
+    for img, id in dataIter:
         try:
-            x_aligned, prob = mtcnn(x, return_prob=True)
+            normalized_face = mtcnn(img)
         except:
-            print(x)
-            plt.imshow(x)
+            # if face detection fails
+            print(img)
+            plt.imshow(img)
             plt.show()
-        if x_aligned is not None:
-            x_aligned = x_aligned.to(device)
-            embeddings = resnet(x_aligned).detach().cpu()
+
+        if normalized_face is not None:
+            # when i removed the below the code worked, if the code break this is why
+            # normalized_face = normalized_face.to(device)
+            embeddings = resnet(normalized_face.unsqueeze(0)).detach().cpu() #NOTE: no clue what detach().cpu() does 
             embeddings = embeddings.numpy()
-            encoded.append(embeddings)
-            for x in range(embeddings.shape[0]):
-                identity.append(dataset.idx_to_class[y])
-            if count %1000 == 0:
-                print(count, x_aligned.shape, dataset.idx_to_class[y])
+            face_embeddings_list.append(embeddings)
+
+            # adding detected classes
+            for unused in range(embeddings.shape[0]):
+                detected_classes.append(dataset.idx_to_class[id])
+
+            # print progress
+            if count%100 == 0:
+                print(count, "remaining")
             count -= 1
            
-    encoded = np.concatenate(encoded, 0)
-    encoded = np.squeeze(encoded)
-    print(encoded.shape)
-    identity = np.array(identity)
-    np.save("identity_save.npy", identity)
-    np.save("encoded_save.npy", encoded)
-    encoded = np.load("encoded_save.npy")
-    identity = np.load("identity_save.npy")
-    print(encoded.shape, identity.shape)
+    # Array Manipulations
+    # convert python lists to np.ndarray for compatibility
+    face_embeddings_list = np.concatenate(face_embeddings_list)
+    face_embeddings_list = np.squeeze(face_embeddings_list) #TODO: seems useless
+    detected_classes = np.array(detected_classes)
+
+
+    print("Saving...")
+    # don't know why it reloads though
+    np.save("identity_save.npy", detected_classes)
+    np.save("encoded_save.npy", face_embeddings_list)
+    face_embeddings_list = np.load("encoded_save.npy")
+    detected_classes = np.load("identity_save.npy")
+    print("Saved")
 
 # Gets embeddings for all the faces in the image. 
 def get_image_vectors(file_loc):
