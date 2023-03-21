@@ -1,4 +1,8 @@
 data/
 volumes/
+_pycache_/
+images/
+
 *.jpg
 *.png
+*.npy
