@@ -13,8 +13,7 @@ HOST = '127.0.0.1'
 PORT = '19530' 
 VECTOR_DIAMENSION = 512
 INDEX_FILE_SIZE = 32
-# TODO: change name of this 
-# not clear what is does
+# TODO: change name of this not clear what is does
 ID_TO_IDENTITY = None   # loaded in create_collection()
 COLLECTION = None       # loaded in create_collection()
 COLLECTION_NAME = 'faces'

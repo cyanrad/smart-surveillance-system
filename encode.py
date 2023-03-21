@@ -78,18 +78,21 @@ def preprocess_images():
     detected_classes = np.load("identity_save.npy")
     print("Saved")
 
-# Gets embeddings for all the faces in the image. 
-def get_image_vectors(file_loc):
-    img = Image.open(file_loc)
-    bbx, prob = mtcnn.detect(img)
+
+def detect_and_encode_face(img):
+    faces_location = mtcnn.detect(img)
     embeddings = None
-    if (bbx is not None):
-        face_cropped = mtcnn.extract(img,bbx,None).to(device)
+
+    if (faces_location is not None):
+        face_cropped = mtcnn.extract(img, faces_location, None)
         embeddings = resnet(face_cropped).detach().cpu()
         embeddings = embeddings.numpy()
-        draw = ImageDraw.Draw(img)
-        for i, box in enumerate(bbx):
-            draw.rectangle(box.tolist(), outline=(255,0,0))
-            draw.text((box.tolist()[0] + 2,box.tolist()[1]), "Face-" + str(i), fill=(255,0,0))
 
-    return embeddings, img
+    return faces_location, embeddings 
+
+def draw_box_on_face(img, faces_location):
+    draw = ImageDraw.Draw(img)
+    for i, box in enumerate(faces_location):
+        draw.rectangle(box.tolist(), outline=(255,0,0))
+        draw.text((box.tolist()[0] + 2,box.tolist()[1]), "Face-" + str(i), fill=(255,0,0))
+    return img

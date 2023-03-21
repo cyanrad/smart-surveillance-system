@@ -4,6 +4,7 @@ from facenet_pytorch import MTCNN, InceptionResnetV1
 import cv2 as cv
 # import milvus
 import encode
+from PIL import Image
 
 # def detectAndDisplaySimple(frame):
 #     tic = time.time()
@@ -42,6 +43,8 @@ import encode
 #     if cv.waitKey(10) == 27:
 #         break
 
-# milvus.create_collection()
 
-encode.preprocess_images()
+img = Image.open("./images/test.jpg")
+face_location, _ = encode.detect_and_encode_face(img)
+img = encode.draw_box_on_face(img, face_location)
+img.save("./images/test_faces.jpg")
