@@ -8,15 +8,17 @@ from torchvision import datasets
 from torch.utils.data import DataLoader
 from  matplotlib import pyplot as plt
 
+# index of x,y,w,h in result array
+FACE_BOX_DATA = 0
 
 # Selecting the device CPU/GPU 
-workers = 0 if os.name == 'nt' else 4
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-print('Running on device: {} 💻️'.format(device))
+# workers = 0 if os.name == 'nt' else 4
+# device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+# print('Running on device: {} 💻️'.format(device))
 from facenet_pytorch import MTCNN, InceptionResnetV1
 
 # Initializng models (detection & recognition)
-mtcnn = MTCNN(device=device)
+mtcnn = MTCNN(device=device, keep_all=True)
 resnet = InceptionResnetV1(pretrained='vggface2').eval()
 
 
@@ -81,18 +83,21 @@ def preprocess_images():
 
 def detect_and_encode_face(img):
     faces_location = mtcnn.detect(img)
-    embeddings = None
+    embeddings = [] 
 
     if (faces_location is not None):
-        face_cropped = mtcnn.extract(img, faces_location, None)
-        embeddings = resnet(face_cropped).detach().cpu()
-        embeddings = embeddings.numpy()
+        face_cropped = mtcnn.extract(img=img, batch_boxes=faces_location[FACE_BOX_DATA], save_path=None)
+        embedding = resnet(face_cropped).detach().cpu()
+        embedding = embedding.numpy()
+        embeddings.append(embedding)
+
 
     return faces_location, embeddings 
 
+# faces_location is a list, specifically from the above function
 def draw_box_on_face(img, faces_location):
     draw = ImageDraw.Draw(img)
-    for i, box in enumerate(faces_location):
+    for i, box in enumerate(faces_location[FACE_BOX_DATA]):
         draw.rectangle(box.tolist(), outline=(255,0,0))
         draw.text((box.tolist()[0] + 2,box.tolist()[1]), "Face-" + str(i), fill=(255,0,0))
     return img
