@@ -12,9 +12,9 @@ from  matplotlib import pyplot as plt
 FACE_BOX_DATA = 0
 
 # Selecting the device CPU/GPU 
-# workers = 0 if os.name == 'nt' else 4
-# device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-# print('Running on device: {} 💻️'.format(device))
+workers = 0 if os.name == 'nt' else 4
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+print('Running on device: {} 💻️'.format(device))
 from facenet_pytorch import MTCNN, InceptionResnetV1
 
 # Initializng models (detection & recognition)
@@ -50,9 +50,7 @@ def preprocess_images():
             plt.show()
 
         if normalized_face is not None:
-            # when i removed the below the code worked, if the code break this is why
-            # normalized_face = normalized_face.to(device)
-            embeddings = resnet(normalized_face.unsqueeze(0)).detach().cpu() #NOTE: no clue what detach().cpu() does 
+            embeddings = resnet(normalized_face).detach().cpu() #NOTE: no clue what detach().cpu() does 
             embeddings = embeddings.numpy()
             face_embeddings_list.append(embeddings)
 
@@ -65,15 +63,12 @@ def preprocess_images():
                 print(count, "remaining")
             count -= 1
            
-    # Array Manipulations
     # convert python lists to np.ndarray for compatibility
     face_embeddings_list = np.concatenate(face_embeddings_list)
     face_embeddings_list = np.squeeze(face_embeddings_list) #TODO: seems useless
     detected_classes = np.array(detected_classes)
 
-
     print("Saving...")
-    # don't know why it reloads though
     np.save("identity_save.npy", detected_classes)
     np.save("encoded_save.npy", face_embeddings_list)
     face_embeddings_list = np.load("encoded_save.npy")
@@ -91,13 +86,17 @@ def detect_and_encode_face(img):
         embedding = embedding.numpy()
         embeddings.append(embedding)
 
-
     return faces_location, embeddings 
 
-# faces_location is a list, specifically from the above function
 def draw_box_on_face(img, faces_location):
     draw = ImageDraw.Draw(img)
     for i, box in enumerate(faces_location[FACE_BOX_DATA]):
         draw.rectangle(box.tolist(), outline=(255,0,0))
         draw.text((box.tolist()[0] + 2,box.tolist()[1]), "Face-" + str(i), fill=(255,0,0))
     return img
+
+def draw_box_and_save(img_path, save_path):
+    img = Image.open(img_path)
+    face_location, _ = detect_and_encode_face(img)
+    img = draw_box_on_face(img, face_location)
+    img.save(save_path)

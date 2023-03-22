@@ -44,7 +44,3 @@ from PIL import Image
 #         break
 
 
-img = Image.open("./images/test.jpg")
-face_location, _ = encode.detect_and_encode_face(img)
-img = encode.draw_box_on_face(img, face_location)
-img.save("./images/test_faces.jpg")
