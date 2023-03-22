@@ -76,7 +76,7 @@ def preprocess_images():
     print("Saved")
 
 
-def detect_and_encode_face(img):
+def find_and_encode_face(img):
     faces_location = mtcnn.detect(img)
     embeddings = [] 
 
@@ -88,15 +88,15 @@ def detect_and_encode_face(img):
 
     return faces_location, embeddings 
 
-def draw_box_on_face(img, faces_location):
+def draw_boxes(img, faces_location):
     draw = ImageDraw.Draw(img)
     for i, box in enumerate(faces_location[FACE_BOX_DATA]):
         draw.rectangle(box.tolist(), outline=(255,0,0))
         draw.text((box.tolist()[0] + 2,box.tolist()[1]), "Face-" + str(i), fill=(255,0,0))
     return img
 
-def draw_box_and_save(img_path, save_path):
+def draw_box_on_face(img_path, save_path):
     img = Image.open(img_path)
-    face_location, _ = detect_and_encode_face(img)
-    img = draw_box_on_face(img, face_location)
+    face_location, _ = find_and_encode_face(img)
+    img = draw_boxes(img, face_location)
     img.save(save_path)

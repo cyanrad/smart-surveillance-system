@@ -2,8 +2,8 @@ import torch
 import os
 from facenet_pytorch import MTCNN, InceptionResnetV1
 import cv2 as cv
-# import milvus
-import encode
+import milvus
+# import encode
 from PIL import Image
 
 # def detectAndDisplaySimple(frame):
@@ -44,3 +44,5 @@ from PIL import Image
 #         break
 
 
+milvus.create_collection()
+milvus.import_all_embeddings()
