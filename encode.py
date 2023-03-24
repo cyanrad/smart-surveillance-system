@@ -76,7 +76,10 @@ def preprocess_images():
     print("Saved")
 
 
-def encode_faces(img):
+# TODO: should be changed so that image load/save handling is not here
+def encode_faces(img_path):
+    img = Image.open(img_path)
+
     faces_location = mtcnn.detect(img)
     embeddings = [] 
 
@@ -86,7 +89,7 @@ def encode_faces(img):
         embedding = embedding.numpy()
         embeddings.append(embedding)
 
-    return faces_location, embeddings 
+    return embeddings 
 
 def draw_box_on_face(img_path, save_path=None):
     img = Image.open(img_path)
@@ -99,5 +102,5 @@ def draw_box_on_face(img_path, save_path=None):
 
     if save_path is not None:
         img.save(save_path)
-        
+
     return img

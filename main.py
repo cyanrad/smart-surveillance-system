@@ -1,10 +1,7 @@
-import torch
 import os
-from facenet_pytorch import MTCNN, InceptionResnetV1
-import cv2 as cv
 import milvus
-# import encode
-from PIL import Image
+import encode
+from  matplotlib import pyplot as plt
 
 # def detectAndDisplaySimple(frame):
 #     tic = time.time()
@@ -43,6 +40,13 @@ from PIL import Image
 #     if cv.waitKey(10) == 27:
 #         break
 
-
-milvus.create_collection()
-milvus.import_all_embeddings()
+if not (os.path.isfile("./encoded_save.npy") and os.path.isfile("./identity_save.npy")):
+    print("Processing Images...")
+    milvus.delete_collection()
+    encode.preprocess_images()
+if not (os.path.isfile("./id_to_class")):
+    milvus.delete_collection()
+if milvus.create_collection():
+    milvus.import_all_embeddings()
+milvus.search_image("images/test.jpg")
+plt.show()

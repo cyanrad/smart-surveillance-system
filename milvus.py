@@ -9,7 +9,8 @@ from pymilvus import (
 import pickle
 import numpy as np
 from  matplotlib import pyplot as plt
-
+import matplotlib.image as mpimg
+import os
 import encode
 
 # TODO: should be loaded from env
@@ -61,9 +62,27 @@ def create_collection():
             return 1
 
 
-def split(a, n):
-    k, m = divmod(len(a), n)
-    return (a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n))
+def split_list(src_list, slices_count):
+    """
+    Split a list into a specified number of slices.
+
+    Args:
+    src_list (list): The list to be split.
+    num_slices (int): The number of slices to create.
+
+    Returns:
+    dst_list (list[slices]): A list of the slices
+    """
+    slice_length, reminder = divmod(len(src_list), slices_count)
+
+    slices = []
+    for i in range(slices_count):
+        start = i*slice_length + min(i, reminder)
+        end = (i+1)*slice_length + min(i+1, reminder)
+        slices.append(src_list[start:end])
+    
+    return slices
+
 
 def import_all_embeddings():
     global ID_TO_IDENTITY
@@ -73,26 +92,30 @@ def import_all_embeddings():
     encoded = np.load("encoded_save.npy")
     identity = np.load("identity_save.npy")
 
-    encoded = np.array_split(encoded, 4, axis=0)
+    #NOTE: why are we splitting into 4 arrays?
     identity = identity.astype(int)
+    identity = np.array_split(identity, 4)
+    encoded = np.array_split(encoded, 4)
 
-    identity = np.array_split(identity, 4, axis=0)
-
+    #NOTE: we're loading ID_TO_IDENTITY in create collection then emptying it here?
     ID_TO_IDENTITY = []
 
     entities = [0,0]
     embeddings = []
     indexing = []
     counter = 1
+
+    # loading embeddings #NOTE: why are we doing this after splitting the array into 4???
     for encode in encoded:
         for embed in encode:
             embeddings.append(embed)
             indexing.append(counter)
             counter += 1
-            # print(counter)
 
-    indexing = list(split(indexing, 5))
-    embeddings = list(split(embeddings, 5))
+    #NOTE: the fuck?
+    indexing = list(split_list(indexing, 5))
+    embeddings = list(split_list(embeddings, 5))
+    print(type(embeddings))
 
     for i in range(5):
         entities[0] = indexing[i]
@@ -121,30 +144,32 @@ def import_all_embeddings():
 
 # Search for the nearest neighbor of the given image. 
 def search_image(file_loc):
-    global collection
-    faces_locations, query_vectors  = encode.find_and_encode_face(file_loc)
-    insert_image = encode.draw_box_on_face(faces_locations)
+    global COLLECTION
+    global ID_TO_IDENTITY
+
+    query_vectors  = encode.encode_faces(file_loc)
+    insert_image = encode.draw_box_on_face(file_loc)
     
     print("Searching for the image ...🧐️")
-    
     search_params = {
         "params": {"nprobe": 2056},
     }
-    results = collection.search(query_vectors, "embedding", search_params, limit=3)
+    query_vector = query_vectors[0]
+    results = COLLECTION.search(query_vector, "embedding", search_params, limit=3)
     print(results)
 
     if results:
         temp = []
         plt.imshow(insert_image)
         for x in range(len(results)):
-            for i, v in id_to_identity:
+            for i, v in ID_TO_IDENTITY:
                 if results[x][0].id == i:
                     temp.append(v)
-        # print(temp)
+        print(temp)
         for i, x in enumerate(temp):
             fig = plt.figure()
             fig.suptitle('Face-' + str(i) + ", Celeb Folder: " + str(x))
-            currentFolder = './celeb_reorganized/' + str(x)
+            currentFolder = './dataFull/' + str(x)
             total = min(len(os.listdir(currentFolder)), 6)
 
             for i, file in enumerate(os.listdir(currentFolder)[0:total], 1):
@@ -156,3 +181,8 @@ def search_image(file_loc):
         if(len(temp))!=0:
             print("Wohoo, Similar Images found!🥳️")
         print(temp)
+
+# Delete the collection
+def delete_collection():
+    print("deleteing collection")
+    utility.drop_collection(COLLECTION_NAME)
