@@ -8,6 +8,9 @@ from pymilvus import (
 )
 import pickle
 import numpy as np
+from  matplotlib import pyplot as plt
+
+import encode
 
 # TODO: should be loaded from env
 HOST = '127.0.0.1'
@@ -116,4 +119,40 @@ def import_all_embeddings():
         pickle.dump(ID_TO_IDENTITY, fp)
     print("Vectors loaded in.✅️")
 
-#TODO: CHECK PYMILVUS VERSIONS
+# Search for the nearest neighbor of the given image. 
+def search_image(file_loc):
+    global collection
+    faces_locations, query_vectors  = encode.find_and_encode_face(file_loc)
+    insert_image = encode.draw_box_on_face(faces_locations)
+    
+    print("Searching for the image ...🧐️")
+    
+    search_params = {
+        "params": {"nprobe": 2056},
+    }
+    results = collection.search(query_vectors, "embedding", search_params, limit=3)
+    print(results)
+
+    if results:
+        temp = []
+        plt.imshow(insert_image)
+        for x in range(len(results)):
+            for i, v in id_to_identity:
+                if results[x][0].id == i:
+                    temp.append(v)
+        # print(temp)
+        for i, x in enumerate(temp):
+            fig = plt.figure()
+            fig.suptitle('Face-' + str(i) + ", Celeb Folder: " + str(x))
+            currentFolder = './celeb_reorganized/' + str(x)
+            total = min(len(os.listdir(currentFolder)), 6)
+
+            for i, file in enumerate(os.listdir(currentFolder)[0:total], 1):
+                fullpath = currentFolder+ "/" + file
+                img = mpimg.imread(fullpath)
+                plt.subplot(2, 3, i)
+                plt.imshow(img)
+        plt.show(block = False)
+        if(len(temp))!=0:
+            print("Wohoo, Similar Images found!🥳️")
+        print(temp)
