@@ -102,6 +102,14 @@ def import_all_embeddings():
         for z in range(len(indexing)):
             ID_TO_IDENTITY.append((indexing[z], identity[x][z]))
     print("Id to identity Done")
+
+    # TODO: this works but this is terrible modify it
+    index_params = {
+        'metric_type':'L2',
+        'index_type':"IVF_FLAT",
+        'params':{"nlist":4096}
+    }
+    COLLECTION.create_index(field_name="embedding", index_params=index_params)
     COLLECTION.load() # RPC error here
 
     with open('id_to_class', 'wb') as fp:
