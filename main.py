@@ -40,6 +40,8 @@ from  matplotlib import pyplot as plt
 #     if cv.waitKey(10) == 27:
 #         break
 
+
+milvus.delete_collection()
 if not (os.path.isfile("./encoded_save.npy") and os.path.isfile("./identity_save.npy")):
     print("Processing Images...")
     milvus.delete_collection()

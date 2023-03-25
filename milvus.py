@@ -27,6 +27,14 @@ connections.connect("default", host=HOST, port=PORT)
 
 # TODO: there should be a function for initializationa and one to create a connection
 def create_collection():
+    """
+    Creates a collection & indexes it using an L2 metric and an IVF_FLAT index type.
+    @ collection exists, load a pickled dictionary called 'id_to_class' into ID_TO_IDENTITIES
+
+    Returns:
+        0 @ default
+        1 @ collection created or id_to_class file doesn't exist
+    """
     global ID_TO_IDENTITY
     global COLLECTION
     global COLLECTION_NAME
@@ -40,15 +48,6 @@ def create_collection():
         schema = CollectionSchema(fields=fields)
         COLLECTION = Collection(name=COLLECTION_NAME, schema=schema)
         print("Collection created✅️")
-    
-        print("Indexing the Collection...🔢️")
-        index_params = {
-            'metric_type':'L2',
-            'index_type':"IVF_FLAT",
-            'params':{"nlist":4096}
-        }
-        COLLECTION.create_index(field_name="embedding", index_params=index_params)
-        print("Collection indexed✅️")
         return 1  
 
     else:
@@ -61,6 +60,70 @@ def create_collection():
         except:
             return 1
 
+
+
+def import_all_embeddings():
+    global ID_TO_IDENTITY
+    global COLLECTION
+
+    #NOTE: unclear: emptying data
+    ID_TO_IDENTITY = []
+
+    # loading embedding and identity data
+    print("Loading in encoded vectors...")
+    encoded = np.load("encoded_save.npy")
+    identity = np.load("identity_save.npy")
+
+    #NOTE: unclear: loading embeddings into python lists
+    embeddings = []
+    indexing = []
+    counter = 1
+    for embed in encoded:
+        embeddings.append(embed)
+        indexing.append(counter)
+        counter += 1
+
+    #NOTE: unclear: potentailly for performance/memory
+    identity = identity.astype(int)
+    identity = np.array_split(identity, 4)
+    encoded = np.array_split(encoded, 4)
+
+    #NOTE: unclear: potentailly for performance/memory
+    indexing = split_list(indexing, 5)
+    embeddings = split_list(embeddings, 5)
+
+    # inserting data into collection
+    entities = [[],[]]
+    for i in range(5):
+        entities[0] = indexing[i]
+        entities[1] = embeddings[i]
+
+        print(f"inserting data {i}")
+        insertInfo = COLLECTION.insert(entities)
+        print(insertInfo)
+
+    # indexing embeddings
+    index_params = {
+        'metric_type':'L2',         # the distance metric (Euclidean distance)
+        'index_type':"FLAT",        # Chose flat since we're dealing with a small dataset
+        'params':{},
+    }
+    COLLECTION.create_index(field_name="embedding", index_params=index_params)
+
+    # loading data into memory for querying
+    COLLECTION.load()
+
+    # loading data embedding & index data into ID_TO_IDENTITY
+    # what the fuck is this??
+    for x in range(len(encoded)):
+        for z in range(len(indexing)):
+            ID_TO_IDENTITY.append((indexing[z], identity[x][z]))
+    print("Id to identity Done")
+
+    # loading data embedding & index data into id_to_class file
+    with open('id_to_class', 'wb') as fp:
+        pickle.dump(ID_TO_IDENTITY, fp)
+    print("Id to class Done")
 
 def split_list(src_list, slices_count):
     """
@@ -84,64 +147,6 @@ def split_list(src_list, slices_count):
     return slices
 
 
-def import_all_embeddings():
-    global ID_TO_IDENTITY
-    global COLLECTION
-
-    print("Loading in encoded vectors...")
-    encoded = np.load("encoded_save.npy")
-    identity = np.load("identity_save.npy")
-
-    #NOTE: why are we splitting into 4 arrays?
-    identity = identity.astype(int)
-    identity = np.array_split(identity, 4)
-    encoded = np.array_split(encoded, 4)
-
-    #NOTE: we're loading ID_TO_IDENTITY in create collection then emptying it here?
-    ID_TO_IDENTITY = []
-
-    entities = [0,0]
-    embeddings = []
-    indexing = []
-    counter = 1
-
-    # loading embeddings #NOTE: why are we doing this after splitting the array into 4???
-    for encode in encoded:
-        for embed in encode:
-            embeddings.append(embed)
-            indexing.append(counter)
-            counter += 1
-
-    #NOTE: the fuck?
-    indexing = list(split_list(indexing, 5))
-    embeddings = list(split_list(embeddings, 5))
-    print(type(embeddings))
-
-    for i in range(5):
-        entities[0] = indexing[i]
-        entities[1] = embeddings[i]
-        print("Initiating Data Insertion {}".format(i))
-        print(COLLECTION.insert(entities))
-        print("Data Inserted {}".format(i))
-
-    for x in range(len(encoded)):
-        for z in range(len(indexing)):
-            ID_TO_IDENTITY.append((indexing[z], identity[x][z]))
-    print("Id to identity Done")
-
-    # TODO: this works but this is terrible modify it
-    index_params = {
-        'metric_type':'L2',
-        'index_type':"IVF_FLAT",
-        'params':{"nlist":4096}
-    }
-    COLLECTION.create_index(field_name="embedding", index_params=index_params)
-    COLLECTION.load() # RPC error here
-
-    with open('id_to_class', 'wb') as fp:
-        pickle.dump(ID_TO_IDENTITY, fp)
-    print("Vectors loaded in.✅️")
-
 # Search for the nearest neighbor of the given image. 
 def search_image(file_loc):
     global COLLECTION
@@ -151,18 +156,24 @@ def search_image(file_loc):
     insert_image = encode.draw_box_on_face(file_loc)
     
     print("Searching for the image ...🧐️")
-    search_params = {
-        "params": {"nprobe": 2056},
-    }
+    
     query_vector = query_vectors[0]
+    search_params = {
+        "params": {}, # since we're using FLAT index
+    }
     results = COLLECTION.search(query_vector, "embedding", search_params, limit=3)
     print(results)
 
-    if results:
+    if results is not None:
         temp = []
+
         plt.imshow(insert_image)
+
+        # this literally doesn't make any sence
+        # they're COMPARING A TUPLE WIT HA LIST....WHAT??
         for x in range(len(results)):
             for i, v in ID_TO_IDENTITY:
+                print(results[x][0])
                 if results[x][0].id == i:
                     temp.append(v)
         print(temp)
@@ -181,6 +192,7 @@ def search_image(file_loc):
         if(len(temp))!=0:
             print("Wohoo, Similar Images found!🥳️")
         print(temp)
+
 
 # Delete the collection
 def delete_collection():
