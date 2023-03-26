@@ -1,12 +1,15 @@
 import os
-
+from  matplotlib import pyplot as plt
 from dotenv import load_dotenv
-load_dotenv() # must be done first
+load_dotenv() # must be done before custom imports
 
 import milvus
 import encode
+import img_index_to_class
+#NOTE: all files indicated by the const import are generated if not exist
 import const
-from  matplotlib import pyplot as plt
+
+
 
 def main():
     collection_name = 'faces'
@@ -15,20 +18,22 @@ def main():
         milvus.delete_old_collection(collection_name) 
         encode.preprocess_faces()
 
-    if not images_indexed():
+    if not img_index_to_class.saved():
         milvus.delete_old_collection(collection_name)
 
-    if milvus.create_collection(collection_name):
-        milvus.import_all_embeddings()
+    collection = None
+    if milvus.collection_exists(collection_name):
+        collection = milvus.get_collection(collection_name)
+    else:
+        collection = milvus.create_collection(collection_name)
+    
+    milvus.upload_embeddings(collection)
 
-    milvus.search_image("images/test.jpg")
+    milvus.search_image(collection, "images/test.jpg")
     plt.show()
 
 def processed_faces_saved():
     return (os.path.isfile(const.ENCODED_SAVE_FILE) 
             and os.path.isfile(const.IDENTITY_SAVE_FILE))
-
-def images_indexed():
-    os.path.isfile(const.IMG_INDEX_TO_CLASS_FILE)
 
 main()

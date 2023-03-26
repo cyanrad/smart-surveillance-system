@@ -6,7 +6,6 @@ from pymilvus import (
     DataType,
     Collection,
 )
-import pickle
 import numpy as np
 from  matplotlib import pyplot as plt
 import matplotlib.image as mpimg
@@ -15,56 +14,27 @@ import os
 import encode
 import const
 
+import img_index_to_class 
+
 VECTOR_DIAMENSION = 512
-
-# Initialized in import_all_embeddings() loaded in create_collection()
-IMG_INDEX_TO_CLASS = []
-
-# loaded in create_collection()
-COLLECTION = None
 
 connections.connect("default", host=os.getenv('HOST'), port=os.getenv('PORT'))
 
-# TODO: there should be a function for initializationa and one to create a connection
 def create_collection(name):
-    """
-    Creates a collection & indexes it using an L2 metric and an IVF_FLAT index type.
-    @ collection exists, load a pickled dictionary called 'img_index_to_class' into IMG_INDEX_TO_CLASS
-
-    Returns:
-        0 @ default
-        1 @ collection created or img_index_to_class file doesn't exist
-    """
-    global IMG_INDEX_TO_CLASS
-    global COLLECTION
-
-    if not utility.has_collection(name):
         print("Creating a collection on Milvus Database...📊️")
         fields = [
             FieldSchema(name='id', dtype=DataType.INT64, descrition='ids', is_primary=True, auto_id=False),
             FieldSchema(name='embedding', dtype=DataType.FLOAT_VECTOR, descrition='embedding vectors', dim=VECTOR_DIAMENSION)
         ]
         schema = CollectionSchema(fields=fields)
-        COLLECTION = Collection(name=name, schema=schema)
-        print("Collection created✅️")
-        return 1  
+        return Collection(name=name, schema=schema)
 
-    else:
-        #NOTE should be it's own function
-        print("Collection exsits")
-        COLLECTION = Collection(name)
-        try:
-            with open(const.IMG_INDEX_TO_CLASS_FILE, 'rb') as fp:
-                IMG_INDEX_TO_CLASS = pickle.load(fp)
-            return 0
-        except:
-            return 1
+def get_collection(name):
+    img_index_to_class.load_from_save()
+    return Collection(name)
 
 
-def import_all_embeddings():
-    global IMG_INDEX_TO_CLASS
-    global COLLECTION
-
+def upload_embeddings(collection):
     # loading embedding and identity data
     print("Loading in encodings & identity")
     encoded = np.load(const.ENCODED_SAVE_FILE)
@@ -81,7 +51,7 @@ def import_all_embeddings():
 
     # inserting data into collection
     print("Inserting data into a collection")
-    insertInfo = COLLECTION.insert([indexing, embeddings])
+    insertInfo = collection.insert([indexing, embeddings])
     print(insertInfo)
 
     # indexing embeddings
@@ -90,25 +60,18 @@ def import_all_embeddings():
         'index_type':"FLAT",    # Chose flat since we're dealing with a small dataset
         'params':{},
     }
-    COLLECTION.create_index(field_name="embedding", index_params=index_params)
+    collection.create_index(field_name="embedding", index_params=index_params)
 
     # loading data into memory for querying
-    COLLECTION.load()
+    collection.load()
 
-    # Loading IMG_INDEX_TO_IDENTITY data, and saving it as pickle
-    for i in range(len(indexing)):
-        IMG_INDEX_TO_CLASS.append((indexing[i], identity[i]))
-
-    with open(const.IMG_INDEX_TO_CLASS_FILE, 'wb') as fp:
-        pickle.dump(IMG_INDEX_TO_CLASS, fp)
-    print("Image index to class data saved")
+    # saving img index to class
+    img_index_to_class.load_from_data(indexing, identity)
+    img_index_to_class.save()
 
 
 # Search for the nearest neighbor of the given image. 
-def search_image(file_loc):
-    global COLLECTION
-    global IMG_INDEX_TO_CLASS
-
+def search_image(collection, file_loc):
     query_vectors  = encode.encode_faces(file_loc)
     insert_image = encode.draw_box_on_face(file_loc)
     
@@ -118,19 +81,16 @@ def search_image(file_loc):
     search_params = {
         "params": {}, # since we're using FLAT index
     }
-    results = COLLECTION.search(query_vector, "embedding", search_params, limit=3)
+    results = collection.search(query_vector, "embedding", search_params, limit=3)
     print(results)
 
     if results is not None:
         temp = []
 
         plt.imshow(insert_image)
-
-        for x in range(len(results)):
-            for img_index, img_class in IMG_INDEX_TO_CLASS:
-                result_img_index = results[x][0].id
-                if result_img_index == img_index:
-                    temp.append(img_class)
+        for i in range(len(results)):
+            img_class = img_index_to_class.get_class(results[i][0].id)
+            temp.append(img_class)
         print(temp)
 
         # Displaing similar faces
@@ -150,5 +110,10 @@ def search_image(file_loc):
             print("Wohoo, Similar Images found!🥳️")
 
 
+
 def delete_old_collection(name):
     utility.drop_collection(name)
+
+def collection_exists(name):
+    return utility.has_collection(name)
+
