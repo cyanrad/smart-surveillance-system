@@ -11,7 +11,9 @@ import numpy as np
 from  matplotlib import pyplot as plt
 import matplotlib.image as mpimg
 import os
+
 import encode
+import const
 
 VECTOR_DIAMENSION = 512
 
@@ -52,7 +54,7 @@ def create_collection(name):
         print("Collection exsits")
         COLLECTION = Collection(name)
         try:
-            with open('img_index_to_class', 'rb') as fp:
+            with open(const.IMG_INDEX_TO_CLASS_FILE, 'rb') as fp:
                 IMG_INDEX_TO_CLASS = pickle.load(fp)
             return 0
         except:
@@ -64,9 +66,9 @@ def import_all_embeddings():
     global COLLECTION
 
     # loading embedding and identity data
-    print("Loading in encoded vectors...")
-    encoded = np.load("encoded_save.npy")
-    identity = np.load("identity_save.npy")
+    print("Loading in encodings & identity")
+    encoded = np.load(const.ENCODED_SAVE_FILE)
+    identity = np.load(const.IDENTITY_SAVE_FILE)
 
     #NOTE: unclear: loading embeddings into python lists
     embeddings = []
@@ -97,7 +99,7 @@ def import_all_embeddings():
     for i in range(len(indexing)):
         IMG_INDEX_TO_CLASS.append((indexing[i], identity[i]))
 
-    with open('img_index_to_class', 'wb') as fp:
+    with open(const.IMG_INDEX_TO_CLASS_FILE, 'wb') as fp:
         pickle.dump(IMG_INDEX_TO_CLASS, fp)
     print("Image index to class data saved")
 
@@ -139,7 +141,7 @@ def search_image(file_loc):
             total = min(len(os.listdir(currentFolder)), 6)
 
             for i, file in enumerate(os.listdir(currentFolder)[0:total], 1):
-                fullpath = currentFolder+ "/" + file
+                fullpath = currentFolder + "/" + file
                 img = mpimg.imread(fullpath)
                 plt.subplot(2, 3, i)
                 plt.imshow(img)
@@ -148,5 +150,5 @@ def search_image(file_loc):
             print("Wohoo, Similar Images found!🥳️")
 
 
-def delete_collection(name):
+def delete_old_collection(name):
     utility.drop_collection(name)

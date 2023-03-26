@@ -8,6 +8,8 @@ from torchvision import datasets
 from torch.utils.data import DataLoader
 from  matplotlib import pyplot as plt
 
+import const
+
 # index of x,y,w,h in result array
 FACE_BOX_DATA = 0
 
@@ -22,7 +24,7 @@ mtcnn = MTCNN(device=device, keep_all=True)
 resnet = InceptionResnetV1(pretrained='vggface2').eval()
 
 
-def preprocess_images():
+def preprocess_faces():
     # Each image is associated with a class. 
     # class is determined by subdirecotry, each class has an id
     dataset = datasets.ImageFolder(os.getenv('DATA_FOLDER'))
@@ -69,10 +71,10 @@ def preprocess_images():
     detected_classes = np.array(detected_classes)
 
     print("Saving...")
-    np.save("identity_save.npy", detected_classes)
-    np.save("encoded_save.npy", face_embeddings_list)
-    face_embeddings_list = np.load("encoded_save.npy")
-    detected_classes = np.load("identity_save.npy")
+    np.save(const.ENCODED_SAVE_FILE, face_embeddings_list)
+    np.save(const.IDENTITY_SAVE_FILE, detected_classes)
+    face_embeddings_list = np.load(const.ENCODED_SAVE_FILE)
+    detected_classes = np.load(const.IDENTITY_SAVE_FILE)
     print("Saved")
 
 
