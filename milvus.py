@@ -17,10 +17,12 @@ import encode
 HOST = '127.0.0.1'
 PORT = '19530' 
 VECTOR_DIAMENSION = 512
-INDEX_FILE_SIZE = 32
-# TODO: change name of this not clear what is does
-ID_TO_IDENTITY = None   # loaded in create_collection()
-COLLECTION = None       # loaded in create_collection()
+
+# Initialized in import_all_embeddings() loaded in create_collection()
+IMG_INDEX_TO_CLASS = []
+
+# loaded in create_collection()
+COLLECTION = None
 COLLECTION_NAME = 'faces'
 
 connections.connect("default", host=HOST, port=PORT)
@@ -29,13 +31,13 @@ connections.connect("default", host=HOST, port=PORT)
 def create_collection():
     """
     Creates a collection & indexes it using an L2 metric and an IVF_FLAT index type.
-    @ collection exists, load a pickled dictionary called 'id_to_class' into ID_TO_IDENTITIES
+    @ collection exists, load a pickled dictionary called 'img_index_to_class' into IMG_INDEX_TO_CLASS
 
     Returns:
         0 @ default
-        1 @ collection created or id_to_class file doesn't exist
+        1 @ collection created or img_index_to_class file doesn't exist
     """
-    global ID_TO_IDENTITY
+    global IMG_INDEX_TO_CLASS
     global COLLECTION
     global COLLECTION_NAME
 
@@ -51,23 +53,20 @@ def create_collection():
         return 1  
 
     else:
+        #NOTE should be it's own function
         print("Collection exsits")
         COLLECTION = Collection(COLLECTION_NAME)
         try:
-            with open('id_to_class', 'rb') as fp:
-                ID_TO_IDENTITY = pickle.load(fp)
+            with open('img_index_to_class', 'rb') as fp:
+                IMG_INDEX_TO_CLASS = pickle.load(fp)
             return 0
         except:
             return 1
 
 
-
 def import_all_embeddings():
-    global ID_TO_IDENTITY
+    global IMG_INDEX_TO_CLASS
     global COLLECTION
-
-    #NOTE: unclear: emptying data
-    ID_TO_IDENTITY = []
 
     # loading embedding and identity data
     print("Loading in encoded vectors...")
@@ -83,29 +82,15 @@ def import_all_embeddings():
         indexing.append(counter)
         counter += 1
 
-    #NOTE: unclear: potentailly for performance/memory
-    identity = identity.astype(int)
-    identity = np.array_split(identity, 4)
-    encoded = np.array_split(encoded, 4)
-
-    #NOTE: unclear: potentailly for performance/memory
-    indexing = split_list(indexing, 5)
-    embeddings = split_list(embeddings, 5)
-
     # inserting data into collection
-    entities = [[],[]]
-    for i in range(5):
-        entities[0] = indexing[i]
-        entities[1] = embeddings[i]
-
-        print(f"inserting data {i}")
-        insertInfo = COLLECTION.insert(entities)
-        print(insertInfo)
+    print("Inserting data into a collection")
+    insertInfo = COLLECTION.insert([indexing, embeddings])
+    print(insertInfo)
 
     # indexing embeddings
     index_params = {
-        'metric_type':'L2',         # the distance metric (Euclidean distance)
-        'index_type':"FLAT",        # Chose flat since we're dealing with a small dataset
+        'metric_type':'L2',     # the distance metric (Euclidean distance)
+        'index_type':"FLAT",    # Chose flat since we're dealing with a small dataset
         'params':{},
     }
     COLLECTION.create_index(field_name="embedding", index_params=index_params)
@@ -113,44 +98,19 @@ def import_all_embeddings():
     # loading data into memory for querying
     COLLECTION.load()
 
-    # loading data embedding & index data into ID_TO_IDENTITY
-    # what the fuck is this??
-    for x in range(len(encoded)):
-        for z in range(len(indexing)):
-            ID_TO_IDENTITY.append((indexing[z], identity[x][z]))
-    print("Id to identity Done")
+    # Loading IMG_INDEX_TO_IDENTITY data, and saving it as pickle
+    for i in range(len(indexing)):
+        IMG_INDEX_TO_CLASS.append((indexing[i], identity[i]))
 
-    # loading data embedding & index data into id_to_class file
-    with open('id_to_class', 'wb') as fp:
-        pickle.dump(ID_TO_IDENTITY, fp)
-    print("Id to class Done")
-
-def split_list(src_list, slices_count):
-    """
-    Split a list into a specified number of slices.
-
-    Args:
-    src_list (list): The list to be split.
-    num_slices (int): The number of slices to create.
-
-    Returns:
-    dst_list (list[slices]): A list of the slices
-    """
-    slice_length, reminder = divmod(len(src_list), slices_count)
-
-    slices = []
-    for i in range(slices_count):
-        start = i*slice_length + min(i, reminder)
-        end = (i+1)*slice_length + min(i+1, reminder)
-        slices.append(src_list[start:end])
-    
-    return slices
+    with open('img_index_to_class', 'wb') as fp:
+        pickle.dump(IMG_INDEX_TO_CLASS, fp)
+    print("Image index to class data saved")
 
 
 # Search for the nearest neighbor of the given image. 
 def search_image(file_loc):
     global COLLECTION
-    global ID_TO_IDENTITY
+    global IMG_INDEX_TO_CLASS
 
     query_vectors  = encode.encode_faces(file_loc)
     insert_image = encode.draw_box_on_face(file_loc)
@@ -169,14 +129,14 @@ def search_image(file_loc):
 
         plt.imshow(insert_image)
 
-        # this literally doesn't make any sence
-        # they're COMPARING A TUPLE WIT HA LIST....WHAT??
         for x in range(len(results)):
-            for i, v in ID_TO_IDENTITY:
-                print(results[x][0])
-                if results[x][0].id == i:
-                    temp.append(v)
+            for img_index, img_class in IMG_INDEX_TO_CLASS:
+                result_img_index = results[x][0].id
+                if result_img_index == img_index:
+                    temp.append(img_class)
         print(temp)
+
+        # Displaing similar faces
         for i, x in enumerate(temp):
             fig = plt.figure()
             fig.suptitle('Face-' + str(i) + ", Celeb Folder: " + str(x))
@@ -191,7 +151,6 @@ def search_image(file_loc):
         plt.show(block = False)
         if(len(temp))!=0:
             print("Wohoo, Similar Images found!🥳️")
-        print(temp)
 
 
 # Delete the collection

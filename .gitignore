@@ -7,3 +7,5 @@ images/
 *.jpg
 *.png
 *.npy
+
+img_index_to_class
