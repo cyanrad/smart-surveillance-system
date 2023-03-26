@@ -10,6 +10,10 @@ import img_index_to_class
 import const
 
 
+# creating saved processed data folder
+if not os.path.exists(const.SAVED_PROCESSING_FOLDER):
+   os.makedirs(const.SAVED_PROCESSING_FOLDER)
+
 
 def main():
     collection_name = 'faces'
@@ -35,5 +39,6 @@ def main():
 def processed_faces_saved():
     return (os.path.isfile(const.ENCODED_SAVE_FILE) 
             and os.path.isfile(const.IDENTITY_SAVE_FILE))
+
 
 main()

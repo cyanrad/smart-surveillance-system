@@ -13,23 +13,22 @@ import os
 
 import encode
 import const
-
 import img_index_to_class 
-
-VECTOR_DIAMENSION = 512
 
 connections.connect("default", host=os.getenv('HOST'), port=os.getenv('PORT'))
 
 def create_collection(name):
-        print("Creating a collection on Milvus Database...📊️")
-        fields = [
-            FieldSchema(name='id', dtype=DataType.INT64, descrition='ids', is_primary=True, auto_id=False),
-            FieldSchema(name='embedding', dtype=DataType.FLOAT_VECTOR, descrition='embedding vectors', dim=VECTOR_DIAMENSION)
-        ]
-        schema = CollectionSchema(fields=fields)
-        return Collection(name=name, schema=schema)
+    VECTOR_DIAMENSION = 512
+    print("Creating a collection on Milvus Database...📊️")
+    fields = [
+        FieldSchema(name='id', dtype=DataType.INT64, descrition='ids', is_primary=True, auto_id=False),
+        FieldSchema(name='embedding', dtype=DataType.FLOAT_VECTOR, descrition='embedding vectors', dim=VECTOR_DIAMENSION)
+    ]
+    schema = CollectionSchema(fields=fields)
+    return Collection(name=name, schema=schema)
 
 def get_collection(name):
+    #NOTE: the save file is for sure exists, but the logic for that should be clearer
     img_index_to_class.load_from_save()
     return Collection(name)
 
