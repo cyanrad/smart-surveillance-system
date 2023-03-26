@@ -25,7 +25,7 @@ resnet = InceptionResnetV1(pretrained='vggface2').eval()
 def preprocess_images():
     # Each image is associated with a class. 
     # class is determined by subdirecotry, each class has an id
-    dataset = datasets.ImageFolder('./data')
+    dataset = datasets.ImageFolder(os.getenv('DATA_FOLDER'))
     dataset.idx_to_class = {i:c for c, i in dataset.class_to_idx.items()}
 
     # unclear, used for batch processing when using a map for data

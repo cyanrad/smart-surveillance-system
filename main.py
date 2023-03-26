@@ -1,7 +1,12 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import milvus
 import encode
 from  matplotlib import pyplot as plt
+
 
 milvus.delete_collection()
 

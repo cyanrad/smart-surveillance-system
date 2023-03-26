@@ -13,9 +13,6 @@ import matplotlib.image as mpimg
 import os
 import encode
 
-# TODO: should be loaded from env
-HOST = '127.0.0.1'
-PORT = '19530' 
 VECTOR_DIAMENSION = 512
 
 # Initialized in import_all_embeddings() loaded in create_collection()
@@ -25,7 +22,7 @@ IMG_INDEX_TO_CLASS = []
 COLLECTION = None
 COLLECTION_NAME = 'faces'
 
-connections.connect("default", host=HOST, port=PORT)
+connections.connect("default", host=os.getenv('HOST'), port=os.getenv('PORT'))
 
 # TODO: there should be a function for initializationa and one to create a connection
 def create_collection():
@@ -140,7 +137,7 @@ def search_image(file_loc):
         for i, x in enumerate(temp):
             fig = plt.figure()
             fig.suptitle('Face-' + str(i) + ", Celeb Folder: " + str(x))
-            currentFolder = './dataFull/' + str(x)
+            currentFolder = os.getenv('DATA_FOLDER') + str(x)
             total = min(len(os.listdir(currentFolder)), 6)
 
             for i, file in enumerate(os.listdir(currentFolder)[0:total], 1):
