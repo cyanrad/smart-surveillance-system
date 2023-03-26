@@ -10,8 +10,6 @@ from  matplotlib import pyplot as plt
 
 import const
 
-# index of x,y,w,h in result array
-FACE_BOX_DATA = 0
 
 # Selecting the device CPU/GPU 
 workers = 0 if os.name == 'nt' else 4
@@ -77,6 +75,9 @@ def preprocess_faces():
     detected_classes = np.load(const.IDENTITY_SAVE_FILE)
     print("Saved")
 
+
+# index of x,y,w,h in result array
+FACE_BOX_DATA = 0
 
 # TODO: should be changed so that image load/save handling is not here
 def encode_faces(img_path):

@@ -1,3 +1,4 @@
+import time
 from pymilvus import (
     connections, 
     utility,
@@ -15,7 +16,9 @@ import encode
 import const
 import img_index_to_class 
 
+
 connections.connect("default", host=os.getenv('HOST'), port=os.getenv('PORT'))
+
 
 def create_collection(name):
     VECTOR_DIAMENSION = 512
@@ -28,12 +31,13 @@ def create_collection(name):
     return Collection(name=name, schema=schema)
 
 def get_collection(name):
-    #NOTE: the save file is for sure exists, but the logic for that should be clearer
+    #NOTE: logically correct, but logic is not clear
     img_index_to_class.load_from_save()
     return Collection(name)
 
 
-def upload_embeddings(collection):
+# TODO: this should be split
+def load_embeddings_into_memory(collection):
     # loading embedding and identity data
     print("Loading in encodings & identity")
     encoded = np.load(const.ENCODED_SAVE_FILE)
@@ -64,7 +68,6 @@ def upload_embeddings(collection):
     # loading data into memory for querying
     collection.load()
 
-    # saving img index to class
     img_index_to_class.load_from_data(indexing, identity)
     img_index_to_class.save()
 
@@ -108,11 +111,20 @@ def search_image(collection, file_loc):
         if(len(temp))!=0:
             print("Wohoo, Similar Images found!🥳️")
 
+def quick_search(collection, file_loc):
+    query_vector = encode.encode_faces(file_loc)[0]
+    start = time.perf_counter()
+    search_params = {
+        "params": {}, # since we're using FLAT index
+    }
+    results = collection.search(query_vector, "embedding", search_params, limit=1)
+    ret = img_index_to_class.get_class(results[0][0].id)
+    print(f"Completed Execution in {time.perf_counter() - start} seconds")
+    return ret
 
 
-def delete_old_collection(name):
+def delete_outdated_collection(name):
     utility.drop_collection(name)
 
 def collection_exists(name):
     return utility.has_collection(name)
-

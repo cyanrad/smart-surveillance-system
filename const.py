@@ -3,6 +3,7 @@
 # this file is for unchanging global constants that are used in multiple files
 
 # file structure is explained more in readme
+#NOTE: all files indicated by the const import are generated if not exist
 
 SAVED_PROCESSING_FOLDER = './processed_data/'
 IMG_INDEX_TO_CLASS_FILE = SAVED_PROCESSING_FOLDER + 'img_index_to_class'

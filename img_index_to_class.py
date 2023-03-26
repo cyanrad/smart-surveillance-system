@@ -22,6 +22,7 @@ def load_from_save():
     _asset_data_is_empty()
     with open(const.IMG_INDEX_TO_CLASS_FILE, 'rb') as fp:
         _data = pickle.load(fp)
+    _asset_data_is_not_empty()
 
 def load_from_data(indexing, identity): 
     # TODO: write args comment
@@ -35,7 +36,7 @@ def get_class(result_index):
     return _data[result_index]
 
 def saved():
-    os.path.isfile(const.IMG_INDEX_TO_CLASS_FILE)
+    return os.path.isfile(const.IMG_INDEX_TO_CLASS_FILE)
 
 
 
