@@ -9,14 +9,16 @@ import const
 from  matplotlib import pyplot as plt
 
 def main():
+    collection_name = 'faces'
+
     if not processed_faces_saved():
-        milvus.delete_old_collection(const.COLLECTION_NAME) 
+        milvus.delete_old_collection(collection_name) 
         encode.preprocess_faces()
 
     if not images_indexed():
-        milvus.delete_old_collection(const.COLLECTION_NAME)
+        milvus.delete_old_collection(collection_name)
 
-    if milvus.create_collection(const.COLLECTION_NAME):
+    if milvus.create_collection(collection_name):
         milvus.import_all_embeddings()
 
     milvus.search_image("images/test.jpg")
