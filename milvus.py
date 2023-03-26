@@ -20,12 +20,11 @@ IMG_INDEX_TO_CLASS = []
 
 # loaded in create_collection()
 COLLECTION = None
-COLLECTION_NAME = 'faces'
 
 connections.connect("default", host=os.getenv('HOST'), port=os.getenv('PORT'))
 
 # TODO: there should be a function for initializationa and one to create a connection
-def create_collection():
+def create_collection(name):
     """
     Creates a collection & indexes it using an L2 metric and an IVF_FLAT index type.
     @ collection exists, load a pickled dictionary called 'img_index_to_class' into IMG_INDEX_TO_CLASS
@@ -36,23 +35,22 @@ def create_collection():
     """
     global IMG_INDEX_TO_CLASS
     global COLLECTION
-    global COLLECTION_NAME
 
-    if not utility.has_collection(COLLECTION_NAME):
+    if not utility.has_collection(name):
         print("Creating a collection on Milvus Database...📊️")
         fields = [
             FieldSchema(name='id', dtype=DataType.INT64, descrition='ids', is_primary=True, auto_id=False),
             FieldSchema(name='embedding', dtype=DataType.FLOAT_VECTOR, descrition='embedding vectors', dim=VECTOR_DIAMENSION)
         ]
         schema = CollectionSchema(fields=fields)
-        COLLECTION = Collection(name=COLLECTION_NAME, schema=schema)
+        COLLECTION = Collection(name=name, schema=schema)
         print("Collection created✅️")
         return 1  
 
     else:
         #NOTE should be it's own function
         print("Collection exsits")
-        COLLECTION = Collection(COLLECTION_NAME)
+        COLLECTION = Collection(name)
         try:
             with open('img_index_to_class', 'rb') as fp:
                 IMG_INDEX_TO_CLASS = pickle.load(fp)
@@ -150,7 +148,5 @@ def search_image(file_loc):
             print("Wohoo, Similar Images found!🥳️")
 
 
-# Delete the collection
-def delete_collection():
-    print("deleteing collection")
-    utility.drop_collection(COLLECTION_NAME)
+def delete_collection(name):
+    utility.drop_collection(name)
