@@ -1,18 +1,17 @@
+from PIL import Image, ImageDraw
+import const
+import img_index_to_class
+import encode
+import milvus
 import os
 # from  matplotlib import pyplot as plt
 from dotenv import load_dotenv
-load_dotenv() # must be done before custom imports
-
-import milvus
-import encode
-import img_index_to_class
-import const
-from PIL import Image, ImageDraw
+load_dotenv()  # must be done before custom imports
 
 
 # creating saved processed data folder
 if not os.path.exists(const.SAVED_PROCESSING_FOLDER):
-   os.makedirs(const.SAVED_PROCESSING_FOLDER)
+    os.makedirs(const.SAVED_PROCESSING_FOLDER)
 # TODO: create asserts for files and folders
 
 
@@ -20,7 +19,7 @@ def main():
     collection_name = 'faces'
 
     if not processed_faces_saved():
-        milvus.delete_outdated_collection(collection_name) 
+        milvus.delete_outdated_collection(collection_name)
         encode.preprocess_faces()
 
     if not img_index_to_class.saved():
@@ -32,14 +31,15 @@ def main():
     else:
         collection = milvus.create_collection(collection_name)
         milvus.load_embeddings_into_memory(collection)
-    
+
     result = milvus.quick_search(collection, "./images/test.jpg")
 
     # milvus.search_image(collection, "images/test.jpg")
     # plt.show()
 
+
 def processed_faces_saved():
-    return (os.path.isfile(const.ENCODED_SAVE_FILE) 
+    return (os.path.isfile(const.ENCODED_SAVE_FILE)
             and os.path.isfile(const.IDENTITY_SAVE_FILE))
 
 

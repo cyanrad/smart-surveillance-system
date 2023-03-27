@@ -1,6 +1,6 @@
 import time
 from pymilvus import (
-    connections, 
+    connections,
     utility,
     FieldSchema,
     CollectionSchema,
@@ -8,13 +8,13 @@ from pymilvus import (
     Collection,
 )
 import numpy as np
-from  matplotlib import pyplot as plt
+from matplotlib import pyplot as plt
 import matplotlib.image as mpimg
 import os
 
 import encode
 import const
-import img_index_to_class 
+import img_index_to_class
 
 
 connections.connect("default", host=os.getenv('HOST'), port=os.getenv('PORT'))
@@ -24,14 +24,17 @@ def create_collection(name):
     VECTOR_DIAMENSION = 512
     print("Creating a collection on Milvus Database...📊️")
     fields = [
-        FieldSchema(name='id', dtype=DataType.INT64, descrition='ids', is_primary=True, auto_id=False),
-        FieldSchema(name='embedding', dtype=DataType.FLOAT_VECTOR, descrition='embedding vectors', dim=VECTOR_DIAMENSION)
+        FieldSchema(name='id', dtype=DataType.INT64,
+                    descrition='ids', is_primary=True, auto_id=False),
+        FieldSchema(name='embedding', dtype=DataType.FLOAT_VECTOR,
+                    descrition='embedding vectors', dim=VECTOR_DIAMENSION)
     ]
     schema = CollectionSchema(fields=fields)
     return Collection(name=name, schema=schema)
 
+
 def get_collection(name):
-    #NOTE: logically correct, but logic is not clear
+    # NOTE: logically correct, but logic is not clear
     img_index_to_class.load_from_save()
     return Collection(name)
 
@@ -43,7 +46,7 @@ def load_embeddings_into_memory(collection):
     encoded = np.load(const.ENCODED_SAVE_FILE)
     identity = np.load(const.IDENTITY_SAVE_FILE)
 
-    #NOTE: unclear: loading embeddings into python lists
+    # NOTE: unclear: loading embeddings into python lists
     embeddings = []
     indexing = []
     counter = 1
@@ -59,9 +62,9 @@ def load_embeddings_into_memory(collection):
 
     # indexing embeddings
     index_params = {
-        'metric_type':'L2',     # the distance metric (Euclidean distance)
-        'index_type':"FLAT",    # Chose flat since we're dealing with a small dataset
-        'params':{},
+        'metric_type': 'L2',     # the distance metric (Euclidean distance)
+        'index_type': "FLAT",    # Chose flat since we're dealing with a small dataset
+        'params': {},
     }
     collection.create_index(field_name="embedding", index_params=index_params)
 
@@ -72,18 +75,19 @@ def load_embeddings_into_memory(collection):
     img_index_to_class.save()
 
 
-# Search for the nearest neighbor of the given image. 
+# Search for the nearest neighbor of the given image.
 def search_image(collection, file_loc):
-    query_vectors  = encode.encode_faces(file_loc)
+    query_vectors = encode.encode_faces(file_loc)
     insert_image = encode.draw_box_on_face(file_loc)
-    
+
     print("Searching for the image ...🧐️")
-    
+
     query_vector = query_vectors[0]
     search_params = {
-        "params": {}, # since we're using FLAT index
+        "params": {},  # since we're using FLAT index
     }
-    results = collection.search(query_vector, "embedding", search_params, limit=3)
+    results = collection.search(
+        query_vector, "embedding", search_params, limit=3)
     print(results)
 
     if results is not None:
@@ -107,17 +111,19 @@ def search_image(collection, file_loc):
                 img = mpimg.imread(fullpath)
                 plt.subplot(2, 3, i)
                 plt.imshow(img)
-        plt.show(block = False)
-        if(len(temp))!=0:
+        plt.show(block=False)
+        if (len(temp)) != 0:
             print("Wohoo, Similar Images found!🥳️")
+
 
 def quick_search(collection, file_loc):
     query_vector = encode.encode_faces(file_loc)[0]
     start = time.perf_counter()
     search_params = {
-        "params": {}, # since we're using FLAT index
+        "params": {},  # since we're using FLAT index
     }
-    results = collection.search(query_vector, "embedding", search_params, limit=1)
+    results = collection.search(
+        query_vector, "embedding", search_params, limit=1)
     ret = img_index_to_class.get_class(results[0][0].id)
     print(f"Completed Execution in {time.perf_counter() - start} seconds")
     return ret
@@ -125,6 +131,7 @@ def quick_search(collection, file_loc):
 
 def delete_outdated_collection(name):
     utility.drop_collection(name)
+
 
 def collection_exists(name):
     return utility.has_collection(name)
