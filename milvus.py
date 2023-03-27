@@ -118,14 +118,12 @@ def search_image(collection, file_loc):
 
 def quick_search(collection, file_loc):
     query_vector = encode.encode_faces(file_loc)[0]
-    start = time.perf_counter()
     search_params = {
         "params": {},  # since we're using FLAT index
     }
     results = collection.search(
         query_vector, "embedding", search_params, limit=1)
     ret = img_index_to_class.get_class(results[0][0].id)
-    print(f"Completed Execution in {time.perf_counter() - start} seconds")
     return ret
 
 

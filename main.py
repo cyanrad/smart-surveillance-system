@@ -1,13 +1,9 @@
-from PIL import Image, ImageDraw
+import envImport  # has to be first
+import milvus
+import encode
 import const
 import img_index_to_class
-import encode
-import milvus
 import os
-# from  matplotlib import pyplot as plt
-from dotenv import load_dotenv
-load_dotenv()  # must be done before custom imports
-
 
 # creating saved processed data folder
 if not os.path.exists(const.SAVED_PROCESSING_FOLDER):
@@ -32,6 +28,7 @@ def main():
         collection = milvus.create_collection(collection_name)
         milvus.load_embeddings_into_memory(collection)
 
+    result = milvus.quick_search(collection, "./images/test.jpg")
     result = milvus.quick_search(collection, "./images/test.jpg")
 
     # milvus.search_image(collection, "images/test.jpg")

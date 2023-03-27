@@ -12,9 +12,7 @@ import const
 
 
 # Selecting the device CPU/GPU
-workers = 0 if os.name == 'nt' else 4
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-print('Running on device: {} 💻️'.format(device))
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 # Initializng models (detection & recognition)
