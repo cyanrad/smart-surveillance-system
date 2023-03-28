@@ -120,9 +120,12 @@ def quick_search(collection, file_loc):
     search_params = {
         "params": {},  # since we're using FLAT index
     }
-    results = collection.search(
-        query_vector, "embedding", search_params, limit=1)
-    ret = img_index_to_class.get_class(results[0][0].id)
+    ret = -1
+    if len(query_vector) > 0:
+        results = collection.search(
+            query_vector[0], "embedding", search_params, limit=1)
+        if results[0][0].distance < 0.6:
+            ret = img_index_to_class.get_class(results[0][0].id)
     return ret
 
 

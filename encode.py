@@ -30,7 +30,7 @@ def preprocess_faces():
     # unclear, used for batch processing when using a map for data
     def collate_fn(x):
         return x[0]
-    dataIter = DataLoader(dataset, collate_fn=collate_fn, num_workers=4)
+    dataIter = DataLoader(dataset, collate_fn=collate_fn)
 
     face_embeddings_list = []
     detected_classes = []
@@ -41,12 +41,10 @@ def preprocess_faces():
     print("generating face embeddings")
     for img, id in dataIter:
         try:
-            normalized_face = mtcnn(img)
+            normalized_face = mtcnn(img).cuda()
         except:
-            # if face detection fails
-            print(img)
-            plt.imshow(img)
-            plt.show()
+            # if detection fails
+            continue
 
         if normalized_face is not None:
             # NOTE: no clue what detach().cpu() does
@@ -83,33 +81,27 @@ FACE_BOX_DATA = 0
 # TODO: should be changed so that image load/save handling is not here
 
 
-def encode_faces(img_path):
-    img = Image.open(img_path)
-
+def encode_faces(img):
     faces_location = mtcnn.detect(img)
 
     embeddings = []
     if (faces_location is not None):
         face_cropped = mtcnn.extract(
-            img=img, batch_boxes=faces_location[FACE_BOX_DATA], save_path=None).cuda()
-        embedding = resnet(face_cropped).detach().cpu()
-        embedding = embedding.numpy()
-        embeddings.append(embedding)
+            img=img, batch_boxes=faces_location[FACE_BOX_DATA], save_path=None)
+        if face_cropped is not None:
+            face_cropped = face_cropped.cuda()
+            embedding = resnet(face_cropped).detach().cpu()
+            embedding = embedding.numpy()
+            embeddings.append(embedding)
 
-    return embeddings
+    return embeddings, faces_location
 
 
-def draw_box_on_face(img_path, save_path=None):
-    img = Image.open(img_path)
-    face_location = mtcnn.detect(img)
-
+def draw_box_on_face(img, faces_location):
     draw = ImageDraw.Draw(img)
-    for i, box in enumerate(face_location[FACE_BOX_DATA]):
+    for i, box in enumerate(faces_location[FACE_BOX_DATA]):
         draw.rectangle(box.tolist(), outline=(255, 0, 0))
         draw.text((box.tolist()[0] + 2, box.tolist()[1]),
                   "Face-" + str(i), fill=(255, 0, 0))
-
-    if save_path is not None:
-        img.save(save_path)
 
     return img
