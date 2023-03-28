@@ -1,3 +1,4 @@
+import time
 import torch
 import os
 import numpy as np
@@ -16,8 +17,8 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 # Initializng models (detection & recognition)
-mtcnn = MTCNN(device=device, keep_all=True)
-resnet = InceptionResnetV1(pretrained='vggface2').eval()
+mtcnn = MTCNN(device=device, keep_all=True, factor=0.6, margin=14)
+resnet = InceptionResnetV1(pretrained='vggface2', device=device).eval()
 
 
 def preprocess_faces():
@@ -29,7 +30,7 @@ def preprocess_faces():
     # unclear, used for batch processing when using a map for data
     def collate_fn(x):
         return x[0]
-    dataIter = DataLoader(dataset, collate_fn=collate_fn, num_workers=workers)
+    dataIter = DataLoader(dataset, collate_fn=collate_fn, num_workers=4)
 
     face_embeddings_list = []
     detected_classes = []
@@ -86,11 +87,11 @@ def encode_faces(img_path):
     img = Image.open(img_path)
 
     faces_location = mtcnn.detect(img)
-    embeddings = []
 
+    embeddings = []
     if (faces_location is not None):
         face_cropped = mtcnn.extract(
-            img=img, batch_boxes=faces_location[FACE_BOX_DATA], save_path=None)
+            img=img, batch_boxes=faces_location[FACE_BOX_DATA], save_path=None).cuda()
         embedding = resnet(face_cropped).detach().cpu()
         embedding = embedding.numpy()
         embeddings.append(embedding)
