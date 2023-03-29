@@ -43,7 +43,7 @@ def load_embeddings_into_memory(collection):
     # loading embedding and identity data
     print("Loading in encodings & identity")
     encoded = np.load(const.ENCODED_SAVE_FILE)
-    identity = np.load(const.IDENTITY_SAVE_FILE)
+    identity = np.load(const.CLASS_SAVE_FILE)
 
     # NOTE: unclear: loading embeddings into python lists
     embeddings = []

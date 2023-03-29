@@ -37,7 +37,7 @@ def main():
 
 def processed_faces_saved():
     return (os.path.isfile(const.ENCODED_SAVE_FILE)
-            and os.path.isfile(const.IDENTITY_SAVE_FILE))
+            and os.path.isfile(const.CLASS_SAVE_FILE))
 
 
 main()

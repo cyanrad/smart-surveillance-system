@@ -1,18 +1,15 @@
-import time
 import torch
 import os
 import numpy as np
 
-from PIL import Image, ImageDraw
+from PIL import ImageDraw
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from torchvision import datasets
-from torch.utils.data import DataLoader
-from matplotlib import pyplot as plt
 
 import const
 
 
-# Selecting the device CPU/GPU
+# Selecting the device GPU/CPU
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
@@ -22,57 +19,55 @@ resnet = InceptionResnetV1(pretrained='vggface2', device=device).eval()
 
 
 def preprocess_faces():
+    # -- loading face images
     # Each image is associated with a class.
-    # class is determined by subdirecotry, each class has an id
+    # Class is determined by subdirecotry.
+    # Each class has an ID.
     dataset = datasets.ImageFolder(os.getenv('DATA_FOLDER'))
-    dataset.idx_to_class = {i: c for c, i in dataset.class_to_idx.items()}
+    dataset.idx_to_class = {id: c for c, id in dataset.class_to_idx.items()}
 
-    # unclear, used for batch processing when using a map for data
-    def collate_fn(x):
-        return x[0]
-    dataIter = DataLoader(dataset, collate_fn=collate_fn)
-
-    face_embeddings_list = []
-    detected_classes = []
+    # NOTE: check if we can convert this to a list of tuples
+    # Used so that we don't have to recompute face detection and encoding
     # for each `embeddeding` in `face_embedding_list`
-    # it's class is storred in the corresponding index in `detected_classes`
-    count = len(dataIter)
+    # it's class is stored in the corresponding index in `detected_classes`
+    embeddings_list = []
+    embeddings_class = []
 
-    print("generating face embeddings")
-    for img, id in dataIter:
+    count = len(dataset)
+    for img, id in dataset:
+        # -- face detection
         try:
+            # converting them to CUDA complient floats for GPU usage
             normalized_face = mtcnn(img).cuda()
         except:
-            # if detection fails
+            print(f"dropping {id}: {img}, no face detected")
             continue
 
-        if normalized_face is not None:
-            # NOTE: no clue what detach().cpu() does
-            embeddings = resnet(normalized_face).detach().cpu()
-            embeddings = embeddings.numpy()
-            face_embeddings_list.append(embeddings)
+        if (len(normalized_face) > 1):
+            print(f"dropping {id}: {img}, more than one face detected")
+            continue
 
-            # adding detected classes
-            for unused in range(embeddings.shape[0]):
-                detected_classes.append(dataset.idx_to_class[id])
+        # -- face encoding
+        # detaching gradient from tensor, then moving data into cpu for conversion, since we use CUDA/GPU
+        embeddings = resnet(normalized_face).detach().cpu()
+        embeddings = embeddings.numpy()
 
-            # print progress
-            if count % 100 == 0:
-                print(count, "remaining")
-            count -= 1
+        # -- saving results
+        embeddings_list.append(embeddings)
+        embeddings_class.append(dataset.idx_to_class[id])
+
+        # -- print progress
+        if count % 100 == 0:
+            print(count, "remaining")
+        count -= 1
 
     # convert python lists to np.ndarray for compatibility
-    face_embeddings_list = np.concatenate(face_embeddings_list)
-    face_embeddings_list = np.squeeze(
-        face_embeddings_list)  # TODO: seems useless
-    detected_classes = np.array(detected_classes)
+    # NOTE: no clue why concatenate is the only one that works
+    embeddings_list = np.concatenate(embeddings_list)
+    embeddings_class = np.array(embeddings_class)
 
-    print("Saving...")
-    np.save(const.ENCODED_SAVE_FILE, face_embeddings_list)
-    np.save(const.IDENTITY_SAVE_FILE, detected_classes)
-    face_embeddings_list = np.load(const.ENCODED_SAVE_FILE)
-    detected_classes = np.load(const.IDENTITY_SAVE_FILE)
-    print("Saved")
+    np.save(const.ENCODED_SAVE_FILE, embeddings_list)
+    np.save(const.CLASS_SAVE_FILE, embeddings_class)
 
 
 # index of x,y,w,h in result array
