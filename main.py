@@ -3,6 +3,7 @@ import milvus
 import encode
 import camera
 import const
+import time
 
 from PIL import Image
 import os
@@ -20,14 +21,20 @@ def main():
         milvus.delete_outdated_collection(collection_name)
         encode.preprocess_faces()
 
+    # TODO: move this to milvus file
     collection = None
     if milvus.collection_exists(collection_name):
         collection = milvus.get_collection(collection_name)
     else:
         collection = milvus.create_collection(collection_name)
-        milvus.load_embeddings_into_memory(collection)
+        milvus.uploading_embeddings(collection)
 
-    camera.streamDetection(collection)
+    # camera.streamDetection(collection)
+
+    img = Image.open("./images/face.jpg")
+    milvus.upload_new_embedding(collection, img, ["4"])
+    result = milvus.quick_search(collection, img)
+    print(result)
 
 
 def processed_faces_saved():
