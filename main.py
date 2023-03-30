@@ -3,7 +3,7 @@ import milvus
 import encode
 import camera
 import const
-import img_index_to_class
+
 from PIL import Image
 import os
 
@@ -19,9 +19,6 @@ def main():
     if not processed_faces_saved():
         milvus.delete_outdated_collection(collection_name)
         encode.preprocess_faces()
-
-    if not img_index_to_class.saved():
-        milvus.delete_outdated_collection(collection_name)
 
     collection = None
     if milvus.collection_exists(collection_name):

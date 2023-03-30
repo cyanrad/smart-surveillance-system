@@ -7,13 +7,10 @@ from pymilvus import (
     Collection,
 )
 import numpy as np
-from matplotlib import pyplot as plt
-import matplotlib.image as mpimg
 import os
 
 import encode
 import const
-import img_index_to_class
 
 
 connections.connect("default", host=os.getenv('HOST'), port=os.getenv('PORT'))
@@ -24,39 +21,32 @@ def create_collection(name):
     print("Creating a collection on Milvus Database...📊️")
     fields = [
         FieldSchema(name='id', dtype=DataType.INT64,
-                    descrition='ids', is_primary=True, auto_id=False),
+                    descrition='Index/Identifier of the embedding', is_primary=True, auto_id=False),
+        FieldSchema(name='class', dtype=DataType.VARCHAR,  # arbitrary max_length (should handle most full names)
+                    descrition='The class (i.e. the person\'s identity) the embedding belongs to', max_length=64),
         FieldSchema(name='embedding', dtype=DataType.FLOAT_VECTOR,
-                    descrition='embedding vectors', dim=VECTOR_DIAMENSION)
+                    descrition='embedding vectors representing a face in the database', dim=VECTOR_DIAMENSION),
     ]
     schema = CollectionSchema(fields=fields)
     return Collection(name=name, schema=schema)
 
 
 def get_collection(name):
-    # NOTE: logically correct, but logic is not clear
-    img_index_to_class.load_from_save()
     return Collection(name)
 
 
 # TODO: this should be split
 def load_embeddings_into_memory(collection):
     # loading embedding and identity data
+    # converting them to python lists for insertion into milvus
     print("Loading in encodings & identity")
-    encoded = np.load(const.ENCODED_SAVE_FILE)
-    identity = np.load(const.CLASS_SAVE_FILE)
-
-    # NOTE: unclear: loading embeddings into python lists
-    embeddings = []
-    indexing = []
-    counter = 1
-    for embed in encoded:
-        embeddings.append(embed)
-        indexing.append(counter)
-        counter += 1
+    encoded = np.load(const.ENCODED_SAVE_FILE).tolist()
+    identity = np.load(const.CLASS_SAVE_FILE).tolist()
+    milvus_id = [i for i in range(len(encoded))]
 
     # inserting data into collection
     print("Inserting data into a collection")
-    insertInfo = collection.insert([indexing, embeddings])
+    insertInfo = collection.insert([milvus_id, identity, encoded])
     print(insertInfo)
 
     # indexing embeddings
@@ -70,50 +60,6 @@ def load_embeddings_into_memory(collection):
     # loading data into memory for querying
     collection.load()
 
-    img_index_to_class.load_from_data(indexing, identity)
-    img_index_to_class.save()
-
-
-# Search for the nearest neighbor of the given image.
-def search_image(collection, file_loc):
-    query_vectors = encode.encode_faces(file_loc)
-    insert_image = encode.draw_box_on_face(file_loc)
-
-    print("Searching for the image ...🧐️")
-
-    query_vector = query_vectors[0]
-    search_params = {
-        "params": {},  # since we're using FLAT index
-    }
-    results = collection.search(
-        query_vector, "embedding", search_params, limit=3)
-    print(results)
-
-    if results is not None:
-        temp = []
-
-        plt.imshow(insert_image)
-        for i in range(len(results)):
-            img_class = img_index_to_class.get_class(results[i][0].id)
-            temp.append(img_class)
-        print(temp)
-
-        # Displaing similar faces
-        for i, x in enumerate(temp):
-            fig = plt.figure()
-            fig.suptitle('Face-' + str(i) + ", Celeb Folder: " + str(x))
-            currentFolder = os.getenv('DATA_FOLDER') + str(x)
-            total = min(len(os.listdir(currentFolder)), 6)
-
-            for i, file in enumerate(os.listdir(currentFolder)[0:total], 1):
-                fullpath = currentFolder + "/" + file
-                img = mpimg.imread(fullpath)
-                plt.subplot(2, 3, i)
-                plt.imshow(img)
-        plt.show(block=False)
-        if (len(temp)) != 0:
-            print("Wohoo, Similar Images found!🥳️")
-
 
 def quick_search(collection, img, threshold=0.6):
     query_vector = encode.encode_faces(img)
@@ -125,13 +71,12 @@ def quick_search(collection, img, threshold=0.6):
         return []
 
     results = collection.search(
-        query_vector[0], "embedding", search_params, limit=1)
+        query_vector[0], "embedding", search_params, limit=1, output_fields=["class"])
 
     detected_classes = []
     for result in results:
         if result[0].distance < threshold:
-            img_class = img_index_to_class.get_class(result[0].id)
-            detected_classes.append(img_class)
+            detected_classes.append(result[0].entity.get('class'))
         else:
             detected_classes.append(-1)
 

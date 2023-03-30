@@ -27,7 +27,7 @@ def preprocess_faces():
     dataset.idx_to_class = {id: c for c, id in dataset.class_to_idx.items()}
 
     # NOTE: check if we can convert this to a list of tuples
-    # Used so that we don't have to recompute face detection and encoding
+    # -- Lists to save processed data
     # for each `embeddeding` in `face_embedding_list`
     # it's class is stored in the corresponding index in `detected_classes`
     embeddings_list = []
@@ -61,7 +61,6 @@ def preprocess_faces():
         count -= 1
 
     # -- convert python lists to np.ndarray for compatibility
-    # NOTE: no clue why concatenate is the only one that works
     embeddings_list = np.concatenate(embeddings_list)
     embeddings_class = np.array(embeddings_class)
 
