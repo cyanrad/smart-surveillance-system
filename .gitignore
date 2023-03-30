@@ -1,7 +1,5 @@
-data/
 volumes/
 __pycache__/
-images/
 .Notes/
 
 *.jpg
