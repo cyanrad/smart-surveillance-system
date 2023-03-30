@@ -73,23 +73,18 @@ def preprocess_faces():
 # index of x,y,w,h in result array
 FACE_BOX_DATA = 0
 
-# TODO: should be changed so that image load/save handling is not here
-
 
 def encode_faces(img):
-    faces_location = mtcnn.detect(img)
+    normalized_faces = mtcnn(img).cuda()
+
+    if normalized_faces is None:
+        return [], []
 
     embeddings = []
-    if (faces_location is not None):
-        face_cropped = mtcnn.extract(
-            img=img, batch_boxes=faces_location[FACE_BOX_DATA], save_path=None)
-        if face_cropped is not None:
-            face_cropped = face_cropped.cuda()
-            embedding = resnet(face_cropped).detach().cpu()
-            embedding = embedding.numpy()
-            embeddings.append(embedding)
+    embedding = resnet(normalized_faces).detach().cpu().numpy()
+    embeddings.append(embedding)
 
-    return embeddings, faces_location
+    return embeddings
 
 
 def draw_box_on_face(img, faces_location):

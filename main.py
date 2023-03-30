@@ -1,10 +1,11 @@
 import envImport  # has to be first
 import milvus
 import encode
+import camera
 import const
 import img_index_to_class
+from PIL import Image
 import os
-import camera
 
 # creating saved processed data folder
 if not os.path.exists(const.SAVED_PROCESSING_FOLDER):
@@ -29,10 +30,10 @@ def main():
         collection = milvus.create_collection(collection_name)
         milvus.load_embeddings_into_memory(collection)
 
-    # result = milvus.quick_search(collection, "./images/test.jpg")
-    # for i in range(0, 9):
-    #     result = milvus.quick_search(collection, "./images/test.jpg")
-    camera.streamDetection(collection)
+    # camera.streamDetection(collection)
+    img = Image.open("./images/test.jpg")
+    res = milvus.quick_search(collection, img)
+    print(res)
 
 
 def processed_faces_saved():

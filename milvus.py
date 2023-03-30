@@ -115,18 +115,27 @@ def search_image(collection, file_loc):
             print("Wohoo, Similar Images found!🥳️")
 
 
-def quick_search(collection, file_loc):
-    query_vector = encode.encode_faces(file_loc)[0]
+def quick_search(collection, img, threshold=0.6):
+    query_vector = encode.encode_faces(img)
     search_params = {
         "params": {},  # since we're using FLAT index
     }
-    ret = -1
-    if len(query_vector) > 0:
-        results = collection.search(
-            query_vector[0], "embedding", search_params, limit=1)
-        if results[0][0].distance < 0.6:
-            ret = img_index_to_class.get_class(results[0][0].id)
-    return ret
+
+    if len(query_vector) == 0:
+        return []
+
+    results = collection.search(
+        query_vector[0], "embedding", search_params, limit=1)
+
+    detected_classes = []
+    for result in results:
+        if result[0].distance < threshold:
+            img_class = img_index_to_class.get_class(result[0].id)
+            detected_classes.append(img_class)
+        else:
+            detected_classes.append(-1)
+
+    return detected_classes
 
 
 def delete_outdated_collection(name):
