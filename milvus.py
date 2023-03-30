@@ -28,22 +28,7 @@ def create_collection(name):
                     descrition='embedding vectors representing a face in the database', dim=VECTOR_DIAMENSION),
     ]
     schema = CollectionSchema(fields=fields)
-    return Collection(name=name, schema=schema)
-
-
-def get_collection(name):
-    return Collection(name)
-
-
-def uploading_embeddings(collection):
-    print("Loading saved encodings & identity data")
-    embeddings = np.load(const.ENCODED_SAVE_FILE)
-    embeddings_class = np.load(const.CLASS_SAVE_FILE)
-
-    # inserting data into collection
-    print("Inserting data into a collection")
-    insert_info = collection.insert([embeddings_class, embeddings])
-    print(insert_info)
+    collection = Collection(name=name, schema=schema)
 
     # indexing embeddings
     index_params = {
@@ -56,9 +41,47 @@ def uploading_embeddings(collection):
     # loading data into memory for querying
     collection.load()
 
+    return collection
 
-def upload_new_embedding(collection, img, img_class):
+
+def get_collection(name):
+    return Collection(name)
+
+
+def delete_outdated_collection(name):
+    utility.drop_collection(name)
+
+
+def collection_exists(name):
+    return utility.has_collection(name)
+
+
+def upload_embeddings_from_save(collection):
+    # check if files actually exist
+    # TODO: should do a warning if it fails
+    if not (os.path.isfile(const.ENCODED_SAVE_FILE)
+            and os.path.isfile(const.CLASS_SAVE_FILE)):
+        return
+
+    embeddings = np.load(const.ENCODED_SAVE_FILE)
+    embeddings_class = np.load(const.CLASS_SAVE_FILE)
+
+    insert_info = collection.insert([embeddings_class, embeddings])
+    print(insert_info)
+
+
+def upload_embeddings_from_dataset(collection, dataset):
+    embeddings, embeddings_class = encode.encode_faces_from_dataset(dataset)
+
+    insert_info = collection.insert([embeddings_class, embeddings])
+    print(insert_info)
+
+
+def upload_embedding_from_img(collection, img, img_class):
     embeddings = np.concatenate(encode.encode_faces(img))
+    if not embeddings:
+        return
+
     insert_info = collection.insert([img_class, embeddings])
     print(insert_info)
 
@@ -66,10 +89,10 @@ def upload_new_embedding(collection, img, img_class):
 def quick_search(collection, img, threshold=0.6):
     query_vector = encode.encode_faces(img)
     search_params = {
-        "params": {},  # since we're using FLAT index
+        "params": {},  # empty since we're using FLAT index
     }
 
-    if len(query_vector) == 0:
+    if not query_vector:
         return []
 
     results = collection.search(
@@ -83,11 +106,3 @@ def quick_search(collection, img, threshold=0.6):
             detected_classes.append(-1)
 
     return detected_classes
-
-
-def delete_outdated_collection(name):
-    utility.drop_collection(name)
-
-
-def collection_exists(name):
-    return utility.has_collection(name)

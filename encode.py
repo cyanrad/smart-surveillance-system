@@ -18,41 +18,30 @@ mtcnn = MTCNN(device=device, keep_all=True, factor=0.6, margin=14)
 resnet = InceptionResnetV1(pretrained='vggface2', device=device).eval()
 
 
-def preprocess_faces():
+def encode_faces_from_dataset(dataset_path, save_data=False):
+    # TODO: handling invalid dataset_path
+
     # -- loading face images
     # Each image is associated with a class.
     # Class is determined by subdirecotry.
     # Each class has an ID.
-    dataset = datasets.ImageFolder(os.getenv('DATA_FOLDER'))
+    dataset = datasets.ImageFolder(dataset_path)
     dataset.idx_to_class = {id: c for c, id in dataset.class_to_idx.items()}
 
-    # NOTE: check if we can convert this to a list of tuples
-    # -- Lists to save processed data
-    # for each `embeddeding` in `face_embedding_list`
-    # it's class is stored in the corresponding index in `detected_classes`
+    # for each `embeddeding` in `embedding_list`
+    # it's class is stored in the corresponding index in `embeddings_class`
     embeddings_list = []
     embeddings_class = []
 
     count = len(dataset)
     for img, id in dataset:
-        normalized_face = mtcnn(img)
-
-        if normalized_face is None:
-            print(f"dropping {id}: {img}, no face detected")
+        embeddings = encode_faces(img, 1, 1)
+        if not embeddings:
             continue
-
-        if (len(normalized_face) > 1):
-            print(f"dropping {id}: {img}, more than one face detected")
-            continue
-
-        # -- face encoding
-        # converting normalized face to CUDA complient tensor
-        # detaching gradient from tensor, then moving data into cpu for conversion, since we use CUDA/GPU
-        embeddings = resnet(normalized_face.cuda()).detach().cpu()
-        embeddings = embeddings.numpy()  # converting to numpy for compatibility
 
         # -- saving results
-        embeddings_list.append(embeddings)
+        # [0] since we expect only one vector
+        embeddings_list.append(embeddings[0])
         embeddings_class.append(dataset.idx_to_class[id])
 
         # -- print progress
@@ -60,20 +49,34 @@ def preprocess_faces():
             print(count, "remaining")
         count -= 1
 
+    if save_data:
+        if not os.path.exists(const.SAVED_PROCESSING_FOLDER):
+            os.makedirs(const.SAVED_PROCESSING_FOLDER)
+
+        np.save(const.ENCODED_SAVE_FILE, embeddings_list)
+        np.save(const.CLASS_SAVE_FILE, embeddings_class)
+
     # -- convert python lists to np.ndarray for compatibility
     embeddings_list = np.concatenate(embeddings_list)
     embeddings_class = np.array(embeddings_class)
-
-    np.save(const.ENCODED_SAVE_FILE, embeddings_list)
-    np.save(const.CLASS_SAVE_FILE, embeddings_class)
+    return embeddings_list, embeddings_class
 
 
-def encode_faces(img):
+def encode_faces(img, min_count=0, max_count=20):
     normalized_faces = mtcnn(img)
 
+    # no face is detected
     if normalized_faces is None:
         return []
 
+    # limit number of faces (more faces == more processing)
+    face_count = len(normalized_faces)
+    if (face_count < min_count or face_count > max_count):
+        return []
+
+    # -- face encoding
+    # converting normalized face to CUDA complient tensor
+    # detaching gradient from tensor, then moving data into cpu for conversion, since we use CUDA/GPU
     embeddings = []
     embedding = resnet(normalized_faces.cuda()).detach().cpu().numpy()
     embeddings.append(embedding)
