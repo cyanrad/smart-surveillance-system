@@ -30,10 +30,7 @@ def main():
         collection = milvus.create_collection(collection_name)
         milvus.load_embeddings_into_memory(collection)
 
-    # camera.streamDetection(collection)
-    img = Image.open("./images/test.jpg")
-    res = milvus.quick_search(collection, img)
-    print(res)
+    camera.streamDetection(collection)
 
 
 def processed_faces_saved():

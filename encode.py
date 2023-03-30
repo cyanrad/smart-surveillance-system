@@ -13,7 +13,7 @@ import const
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-# Initializng models (detection & recognition)
+# -- Initializng models (detection & recognition)
 mtcnn = MTCNN(device=device, keep_all=True, factor=0.6, margin=14)
 resnet = InceptionResnetV1(pretrained='vggface2', device=device).eval()
 
@@ -35,11 +35,9 @@ def preprocess_faces():
 
     count = len(dataset)
     for img, id in dataset:
-        # -- face detection
-        try:
-            # converting them to CUDA complient floats for GPU usage
-            normalized_face = mtcnn(img).cuda()
-        except:
+        normalized_face = mtcnn(img)
+
+        if normalized_face is None:
             print(f"dropping {id}: {img}, no face detected")
             continue
 
@@ -48,9 +46,10 @@ def preprocess_faces():
             continue
 
         # -- face encoding
+        # converting normalized face to CUDA complient tensor
         # detaching gradient from tensor, then moving data into cpu for conversion, since we use CUDA/GPU
-        embeddings = resnet(normalized_face).detach().cpu()
-        embeddings = embeddings.numpy()
+        embeddings = resnet(normalized_face.cuda()).detach().cpu()
+        embeddings = embeddings.numpy()  # converting to numpy for compatibility
 
         # -- saving results
         embeddings_list.append(embeddings)
@@ -61,7 +60,7 @@ def preprocess_faces():
             print(count, "remaining")
         count -= 1
 
-    # convert python lists to np.ndarray for compatibility
+    # -- convert python lists to np.ndarray for compatibility
     # NOTE: no clue why concatenate is the only one that works
     embeddings_list = np.concatenate(embeddings_list)
     embeddings_class = np.array(embeddings_class)
@@ -70,24 +69,23 @@ def preprocess_faces():
     np.save(const.CLASS_SAVE_FILE, embeddings_class)
 
 
-# index of x,y,w,h in result array
-FACE_BOX_DATA = 0
-
-
 def encode_faces(img):
-    normalized_faces = mtcnn(img).cuda()
+    normalized_faces = mtcnn(img)
 
     if normalized_faces is None:
-        return [], []
+        return []
 
     embeddings = []
-    embedding = resnet(normalized_faces).detach().cpu().numpy()
+    embedding = resnet(normalized_faces.cuda()).detach().cpu().numpy()
     embeddings.append(embedding)
 
     return embeddings
 
 
 def draw_box_on_face(img, faces_location):
+    # index of x,y,w,h in result array
+    FACE_BOX_DATA = 0
+
     draw = ImageDraw.Draw(img)
     for i, box in enumerate(faces_location[FACE_BOX_DATA]):
         draw.rectangle(box.tolist(), outline=(255, 0, 0))
