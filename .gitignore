@@ -12,3 +12,6 @@ __pycache__/
 # data folders
 data/
 processed_data/
+
+# temporyr until i find a better vid
+test_video.mp4

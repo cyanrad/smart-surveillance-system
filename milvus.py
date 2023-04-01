@@ -92,15 +92,18 @@ def upload_embedding_from_img(collection, img, img_class):
 
 def quick_search(collection, img, threshold=0.6):
     query_vector = encode.encode_faces(img)
+    if not query_vector:
+        return []
+
     search_params = {
         "params": {},  # empty since we're using FLAT index
     }
 
-    if not query_vector:
-        return []
-
     results = collection.search(
         query_vector[0], "embedding", search_params, limit=1, output_fields=["class"])
+
+    if not results[0]:
+        return []
 
     detected_classes = []
     for result in results:
