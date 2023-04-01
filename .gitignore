@@ -1,9 +1,14 @@
+# milvus folders
 volumes/
+
+# python folders
 __pycache__/
+.pytest_cache/
+
+# project folders
 .Notes/
+.vscode/
 
-*.jpg
-*.png
-*.npy
-
-img_index_to_class
+# data folders
+data/
+processed_data/
