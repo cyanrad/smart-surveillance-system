@@ -1,1 +1,5 @@
 - add proper logging
+    - remove useless print messages
+    - understand how logging works in python
+- create API wrapper
+    - probably using fastAPI

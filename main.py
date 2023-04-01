@@ -1,8 +1,6 @@
 import envImport  # has to be first
 import milvus
 import camera
-import const
-import time
 
 from PIL import Image
 import os
