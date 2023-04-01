@@ -62,6 +62,8 @@ def encode_faces_from_dataset(dataset_path, save_data=False):
     return embeddings_list, embeddings_class
 
 
+# TODO: now i could be a good engineer and modify this so it raises erros
+#       but am i????
 def encode_faces(img, min_count=0, max_count=20):
     normalized_faces = mtcnn(img)
 

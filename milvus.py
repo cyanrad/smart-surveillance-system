@@ -13,6 +13,7 @@ import encode
 import const
 
 
+# TODO: this should absolutely be handled somewhere else
 connections.connect("default", host=os.getenv('HOST'), port=os.getenv('PORT'))
 
 
@@ -78,12 +79,15 @@ def upload_embeddings_from_dataset(collection, dataset):
 
 
 def upload_embedding_from_img(collection, img, img_class):
-    embeddings = np.concatenate(encode.encode_faces(img))
+    embeddings = encode.encode_faces(img, 1, 1)
     if not embeddings:
-        return
+        return False
+
+    embeddings = np.concatenate(embeddings)
 
     insert_info = collection.insert([img_class, embeddings])
     print(insert_info)
+    return True
 
 
 def quick_search(collection, img, threshold=0.6):
