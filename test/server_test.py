@@ -39,21 +39,21 @@ def test_add_new_face():
     client = TestClient(app)
 
     # testing a single face
-    resp1 = upload_testing_img(client, test_face_path)
+    resp1 = upload_test_img(client, test_face_path)
     assert resp1.json() == {"ok": True}
 
     # testing a multiple faces
-    resp2 = upload_testing_img(client, test_multi_face_path)
+    resp2 = upload_test_img(client, test_multi_face_path)
     assert resp2.json() == {"ok": False}
 
     # testing a noise picture
-    resp3 = upload_testing_img(client, test_noise_path)
+    resp3 = upload_test_img(client, test_noise_path)
     assert resp3.json() == {"ok": False}
 
     delete_outdated_collection(collection_name)
 
 
-def upload_testing_img(client, img_path):
+def upload_test_img(client, img_path):
     # reading a file (using os as to be standard across lanuages)
     fd = os.open(img_path, os.O_RDONLY | os.O_BINARY)
     contents = os.read(fd, os.path.getsize(img_path))
@@ -71,26 +71,41 @@ def test_stream_face_recognition():
 
     client = TestClient(app)
 
+    # before face is inserted into the database. (log should contain empty lists)
+    log1 = stream_test_video(client, test_video_path)
+    print(log1)
+
+    # after. (log should contain face class (id1) lists)
+    resp = upload_test_img(client, test_face_path)
+    assert resp.json() == {"ok": True}
+    log2 = stream_test_video(client, test_video_path)
+    print(log2)
+
+    delete_outdated_collection(collection_name)
+
+
+def stream_test_video(client, video_path):
+    log = []
     try:
         with client.websocket_connect("/stream/123") as ws:
-            cap = cv2.VideoCapture(test_video_path)
+            cap = cv2.VideoCapture(video_path)
             if not cap.isOpened:
-                return
+                ws.close()
+                return []
 
             while (cap.isOpened()):
                 _, frame = cap.read()
                 if frame is None:
-                    return
+                    ws.close()
+                    return log
 
                 ok, img_byte_buf = cv2.imencode(".jpg", frame)
                 if ok:
                     ws.send_bytes(img_byte_buf.tobytes())
                     resp = ws.receive_json()
-                    print(resp)
+                    log.append(resp)
     except:
-        print("done")
-
-    delete_outdated_collection(collection_name)
+        return log
 
 
 @pytest.mark.skip(reason="no longer useful, was used to demonstate that conversion works")
