@@ -16,6 +16,9 @@ class Server:
         self.router.add_websocket_route(
             "/stream/{device_name}", self.stream_face_recognition
         )
+        self.router.add_websocket_route(
+            "/blockstream/{device_name}", self.block_stream_face_recognition
+        )
 
     def add_new_face(self, img_class: str, img_bytes: bytes = File()):
         buffered_data = io.BytesIO(img_bytes)
@@ -27,11 +30,46 @@ class Server:
 
     async def stream_face_recognition(self, websocket: WebSocket):
         await websocket.accept()
+        log = 0
         while True:
-            img_bytes = await websocket.receive_bytes()
-
-            buffered_data = io.BytesIO(img_bytes)
-            img = Image.open(buffered_data)
+            img = await self.get_frame(websocket)
             result = milvus.quick_search(self.collection, img)
-
             await websocket.send_json({"detected": result})
+
+            log += 1
+            print(log)
+
+    async def block_stream_face_recognition(self, websocket: WebSocket):
+        await websocket.accept()
+
+        # getting initial frame data
+        initial_frame = await self.get_frame(websocket)
+        stream_resolution = initial_frame.size
+
+        # block image has 5 columns & 2 rows to hold stream frames
+        block_image = Image.new(
+            'RGB', (5*stream_resolution[0], 2*stream_resolution[1]))
+
+        log = 0
+        while True:
+            # filling the block image
+            for i in range(2):
+                for j in range(5):
+                    img = await self.get_frame(websocket)
+                    block_image.paste(
+                        img, (j*stream_resolution[0], i*stream_resolution[1]))
+
+                    log += 1
+                    print(log)
+
+            results = milvus.quick_search(self.collection, block_image)
+            await websocket.send_json({"detected": results})
+
+            # clearing the block image
+            block_image = Image.new(
+                'RGB', (5*stream_resolution[0], 2*stream_resolution[1]))
+
+    async def get_frame(self, websocket: WebSocket):
+        img_bytes = await websocket.receive_bytes()
+        buffered_data = io.BytesIO(img_bytes)
+        return Image.open(buffered_data)

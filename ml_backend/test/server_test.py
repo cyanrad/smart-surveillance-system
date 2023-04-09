@@ -5,6 +5,7 @@ import os
 import io
 import pytest
 import cv2
+import time
 
 import envImport
 from API.server import Server
@@ -72,14 +73,27 @@ def test_stream_face_recognition():
     client = TestClient(app)
 
     # before face is inserted into the database. (log should contain empty lists)
-    log1 = stream_test_video(client, test_video_path)
-    print(log1)
+    # commented out temporarely
+    # log1 = stream_test_video(client, test_video_path)
+    # print(log1)
 
-    # after. (log should contain face class (id1) lists)
+    # adding a face to check if the detection works
     resp = upload_test_img(client, test_face_path)
     assert resp.json() == {"ok": True}
+
+    # after. (log should contain face class (id1) lists)
+    tic = time.time()
     log2 = stream_test_video(client, test_video_path)
+    toc = time.time()
     print(log2)
+    print(toc - tic)
+
+    # testing the new attempt at performance improvement
+    tic = time.time()
+    log3 = block_stream_test_video(client, test_video_path)
+    toc = time.time()
+    print(log3)
+    print(toc - tic)
 
     delete_outdated_collection(collection_name)
 
@@ -104,6 +118,44 @@ def stream_test_video(client, video_path):
                     ws.send_bytes(img_byte_buf.tobytes())
                     resp = ws.receive_json()
                     log.append(resp)
+    except:
+        return log
+
+
+# this should be removed later
+def block_stream_test_video(client, video_path):
+    log = []
+    try:
+        with client.websocket_connect("/blockstream/123") as ws:
+            cap = cv2.VideoCapture(video_path)
+            if not cap.isOpened:
+                ws.close()
+                return []
+
+            # initial frame send
+            _, frame = cap.read()
+            if frame is None:
+                ws.close()
+                return log
+
+            ok, img_byte_buf = cv2.imencode(".jpg", frame)
+            if ok:
+                ws.send_bytes(img_byte_buf.tobytes())
+
+            # streaming
+            while (cap.isOpened()):
+                for _ in range(10):
+                    _, frame = cap.read()
+                    if frame is None:
+                        ws.close()
+                        return log
+
+                    ok, img_byte_buf = cv2.imencode(".jpg", frame)
+                    if ok:
+                        ws.send_bytes(img_byte_buf.tobytes())
+
+                resp = ws.receive_json()
+                log.append(resp)
     except:
         return log
 

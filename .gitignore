@@ -1,3 +1,21 @@
+# milvus folders
+volumes/
+
+# python folders
+__pycache__/
+.pytest_cache/
+
+# project folders
+.Notes/
+.vscode/
+
+# data folders
+data/
+processed_data/
+
+# temporyr until i find a better vid
+test_video.mp4
+
 # Logs
 logs
 *.log
