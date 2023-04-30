@@ -1,0 +1,10 @@
+__pychache__
+.Notes
+.vscode
+data
+milvus
+test
+volumes
+
+camera.py
+todo.md

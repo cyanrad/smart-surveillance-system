@@ -11,6 +11,7 @@ import const
 
 # Selecting the device GPU/CPU
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print(device)
 
 
 # -- Initializng models (detection & recognition)

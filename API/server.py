@@ -4,11 +4,22 @@ from PIL import Image
 import io
 
 import milvus
+import os
 
 
 class Server:
-    def __init__(self, collection: Collection):
-        self.collection = collection
+    def __init__(self, collection_name: str):
+        self.collection: Collection
+
+        # creating collection
+        if milvus.collection_exists(collection_name):
+            self.collection = milvus.get_collection(collection_name)
+        else:
+            self.collection = milvus.create_collection(collection_name)
+            milvus.upload_embeddings_from_dataset(
+                self.collection, os.getenv('DATA_FOLDER'))
+
+        # starting the API
         self.router = APIRouter()
 
         self.router.add_api_route(

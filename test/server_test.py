@@ -20,7 +20,7 @@ collection = create_collection(collection_name)
 
 # server & test client creation
 app = FastAPI()
-s = Server(collection)
+s = Server('api_testing')
 app.include_router(s.router)
 delete_outdated_collection(collection_name)
 

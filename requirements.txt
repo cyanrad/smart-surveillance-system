@@ -1,0 +1,20 @@
+cmake==3.26.3
+
+# general util
+# Pillow==8.2.0
+python-dotenv==1.0.0
+python-multipart==0.0.6
+
+# API server
+fastapi==0.95.0
+pydantic==1.9.2
+uvicorn==0.21.1
+
+# facial detection and recognition tooling
+facenet-pytorch==2.5.2
+# torch>=1.11.0
+# torchvision==0.12.0
+
+# general data tooling
+# numpy==1.24.2
+pymilvus==2.2.8
