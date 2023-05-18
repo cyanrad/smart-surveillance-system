@@ -4,6 +4,9 @@ docker-run:
 docker-build:
 	docker build -t face-rec-nvidia:latest .
 
+run:
+	uvicorn main:app
+
 .ONESHELL:
 test:
 	cd test/

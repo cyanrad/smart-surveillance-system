@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, WebSocket
+from fastapi import APIRouter, File, HTTPException, WebSocket
 from pymilvus import Collection
 from PIL import Image
 import io
@@ -23,7 +23,7 @@ class Server:
         self.router = APIRouter()
 
         self.router.add_api_route(
-            "/face/{img_class}", self.add_new_face, methods=["POST"])
+            "/face/{img_class}", self.add_face, methods=["POST"])
         self.router.add_websocket_route(
             "/stream/{device_name}", self.stream_face_recognition
         )
@@ -31,20 +31,35 @@ class Server:
             "/blockstream/{device_name}", self.block_stream_face_recognition
         )
 
-    def add_new_face(self, img_class: str, img_bytes: bytes = File()):
+    def add_face(self, img_class: str, owner_uuid: str, img_bytes: bytes = File()):
+        # TODO: HTTP: POST request to auth server to confirm owner_exists
+        # @ fail return 401: unauthorized
+
         buffered_data = io.BytesIO(img_bytes)
         img = Image.open(buffered_data)
 
         ok = milvus.upload_embedding_from_img(
             self.collection, img, [img_class])
-        return {"ok": ok}
+
+        if ok:
+            return {
+                "class": img_class,
+                "owner": owner_uuid,
+            }
+        else:
+            raise HTTPException(
+                status_code=400, detail="error uploading image")
 
     async def stream_face_recognition(self, websocket: WebSocket):
+        print("test")
         await websocket.accept()
+        print("test")
         log = 0
         while True:
             img = await self.get_frame(websocket)
+            print("recieved data")
             result = milvus.quick_search(self.collection, img)
+            print("sending: ", result)
             await websocket.send_json({"detected": result})
 
             log += 1
@@ -83,4 +98,4 @@ class Server:
     async def get_frame(self, websocket: WebSocket):
         img_bytes = await websocket.receive_bytes()
         buffered_data = io.BytesIO(img_bytes)
-        return Image.open(buffered_data)
+        return Image.open(buffered_data, formats=['JPEG'])
