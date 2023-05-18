@@ -23,7 +23,7 @@ class Server:
         self.router = APIRouter()
 
         self.router.add_api_route(
-            "/face/{img_class}", self.add_face, methods=["POST"])
+            "/face/{owner_uuid}/{img_class}", self.add_face, methods=["POST"])
         self.router.add_websocket_route(
             "/stream/{device_name}", self.stream_face_recognition
         )
@@ -32,9 +32,6 @@ class Server:
         )
 
     def add_face(self, img_class: str, owner_uuid: str, img_bytes: bytes = File()):
-        # TODO: HTTP: POST request to auth server to confirm owner_exists
-        # @ fail return 401: unauthorized
-
         buffered_data = io.BytesIO(img_bytes)
         img = Image.open(buffered_data)
 
@@ -51,19 +48,12 @@ class Server:
                 status_code=400, detail="error uploading image")
 
     async def stream_face_recognition(self, websocket: WebSocket):
-        print("test")
         await websocket.accept()
-        print("test")
-        log = 0
+
         while True:
             img = await self.get_frame(websocket)
-            print("recieved data")
             result = milvus.quick_search(self.collection, img)
-            print("sending: ", result)
             await websocket.send_json({"detected": result})
-
-            log += 1
-            print(log)
 
     async def block_stream_face_recognition(self, websocket: WebSocket):
         await websocket.accept()

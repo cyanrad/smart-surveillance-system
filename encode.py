@@ -70,11 +70,13 @@ def encode_faces(img, min_count=0, max_count=20):
 
     # no face is detected
     if normalized_faces is None:
+        print("no face detected")
         return []
 
     # limit number of faces (more faces == more processing)
     face_count = len(normalized_faces)
     if (face_count < min_count or face_count > max_count):
+        print("bad number of faces detected", face_count)
         return []
 
     # -- face encoding

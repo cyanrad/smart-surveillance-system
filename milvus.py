@@ -110,6 +110,6 @@ def quick_search(collection, img, threshold=0.6):
         if result[0].distance < threshold:
             detected_classes.append(result[0].entity.get('class'))
         else:
-            detected_classes.append(-1)
+            detected_classes.append("")
 
     return detected_classes
