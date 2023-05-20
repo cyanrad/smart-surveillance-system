@@ -25,7 +25,8 @@ func (h handler) CreateOwner(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(body, &owner)
 
 	//add to database and check if error
-	if result := h.DB.Create(&owner); result.Error != nil {
+	result := h.DB.Create(&owner)
+	if result.Error != nil {
 		//log error and return status BadRequest
 		log.Println(result.Error)
 		w.WriteHeader(http.StatusBadRequest)
@@ -37,7 +38,11 @@ func (h handler) CreateOwner(w http.ResponseWriter, r *http.Request) {
 	//Return status Created
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode("Created")
+	data, err := json.Marshal(owner)
+	if err != nil {
+		log.Println(err)
+	}
+	w.Write(data)
 }
 
 func (h handler) ReadOwner(w http.ResponseWriter, r *http.Request) {

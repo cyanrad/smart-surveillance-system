@@ -22,9 +22,9 @@ type Person struct {
 }
 
 type Access struct {
-	CameraId uint64 `gorm:"primaryKey;autoIncrement:false"`
-	PersonId uint64 `gorm:"primaryKey;autoIncrement:false"`
+	CameraId uint64
+	PersonId uint64
 
-	Camera Camera `json:"-" gorm:"foreignKey:CameraId"`
-	Person Person `json:"-" gorm:"foreignKey:PersonId"`
+	Camera Camera `json:"-" gorm:"primaryKey,foreignKey:CameraId"`
+	Person Person `json:"-" gorm:"primaryKey,foreignKey:PersonId"`
 }

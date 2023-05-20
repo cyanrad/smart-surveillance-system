@@ -1,44 +1,35 @@
-import cv2 as cv
+import envImport  # this has to be first
 import os
+import ai
+import authentication
 import asyncio
-import websockets
-import requests
-from dotenv import load_dotenv
+
+from faker import Faker
+fake = Faker()
 
 
-def addFace(filepath: str, faceClass: str, ownerUuid: str):
-    r = requests.post(
-        os.getenv("URI") + "/face/" + ownerUuid + "/" + faceClass,
-        files={"img_bytes": open(filepath, "rb")}
-    )
+async def main():
+    owner = authentication.createOwner(fake.name())
+    cam1 = authentication.createCamera(owner["ID"])
+    cam2 = authentication.createCamera(owner["ID"])
+    print(cam1)
+    print(cam2)
+    personName = "Radwan"
+    person = authentication.createPerson(fake.random_number(
+        digits=7), owner["ID"], personName)
+    print(person)
 
+    # allowing the person on camera 1
+    authentication.createAccess(cam1["ID"], person["ID"])
 
-async def sendVideo():
-    videoFiles = os.listdir('./videos')
+    # adding classes to db
+    for face in os.listdir("./faces"):
+        for img in os.listdir("./faces/" + face):
+            ai.addFace("./faces/" + face + "/" + img, personName +
+                       "_" + str(person["ID"]), "0")
 
-    for file in videoFiles:
-        video = cv.VideoCapture('./videos/' + file)
-
-        async with websockets.connect(os.getenv('WS_URI') + "/stream/0") as ws:
-            while True:
-                ok, frame = video.read()
-                if not ok:
-                    break
-
-                _, frame_bytes = cv.imencode(".jpg", frame)
-
-                await ws.send(frame_bytes.tobytes())
-                replyData = await ws.recv()
-                print("data: ", replyData)
-
-            video.release()
-            await ws.close()
-
-
-load_dotenv()
+    # ai.sendVideo(cam1, "ex.mp4"),
+    await asyncio.gather(ai.sendVideo(cam2, "ex.mp4"))
 
 if __name__ == "__main__":
-    # for face in os.listdir("./faces"):
-    #     for img in os.listdir("./faces/" + face):
-    #         addFace("./faces/" + face + "/" + img, face, "0")
-    asyncio.run(sendVideo())
+    asyncio.run(main())

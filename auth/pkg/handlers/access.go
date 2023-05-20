@@ -47,16 +47,14 @@ func (h handler) ReadAccess(w http.ResponseWriter, r *http.Request) {
 	c_id, _ := strconv.Atoi(vars["cid"])
 	p_id, _ := strconv.Atoi(vars["pid"])
 
-	var access models.Access
-	access.CameraId = uint64(c_id)
-	access.PersonId = uint64(p_id)
 	// find access in db
-	if result := h.DB.First(&access); result.Error != nil {
+	var access models.Access
+	if result := h.DB.First(&access, "camera_id = ? AND person_id = ?", c_id, p_id); result.Error != nil {
 		//log error and return status BadRequest
 		log.Println(result.Error)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Add("Content-Type", "application/json")
-		json.NewEncoder(w).Encode("Failed")
+		w.Write([]byte("Failed"))
 		return
 	}
 

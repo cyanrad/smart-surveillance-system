@@ -38,7 +38,11 @@ func (h handler) CreateCamera(w http.ResponseWriter, r *http.Request) {
 	//Return status Created
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode("Created")
+	data, err := json.Marshal(&camera)
+	if err != nil {
+		log.Println(err)
+	}
+	w.Write(data)
 }
 
 func (h handler) ReadCamera(w http.ResponseWriter, r *http.Request) {

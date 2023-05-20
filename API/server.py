@@ -16,8 +16,8 @@ class Server:
             self.collection = milvus.get_collection(collection_name)
         else:
             self.collection = milvus.create_collection(collection_name)
-            milvus.upload_embeddings_from_dataset(
-                self.collection, os.getenv('DATA_FOLDER'))
+            # milvus.upload_embeddings_from_dataset(
+            #     self.collection, os.getenv('DATA_FOLDER'))
 
         # starting the API
         self.router = APIRouter()
