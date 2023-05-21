@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, HTTPException, WebSocket
+from fastapi import APIRouter, File, HTTPException, WebSocket, WebSocketDisconnect
 from pymilvus import Collection
 from PIL import Image
 import io
@@ -50,11 +50,18 @@ class Server:
     async def stream_face_recognition(self, websocket: WebSocket):
         await websocket.accept()
 
-        while True:
-            img = await self.get_frame(websocket)
-            result = milvus.quick_search(self.collection, img)
-            await websocket.send_json({"detected": result})
+        try:
+            while True:
+                img = await self.get_frame(websocket)
+                result = milvus.quick_search(self.collection, img)
+                if len(result) == 0:
+                    await websocket.send_json({"detected": [], "positions": []})
+                else:
+                    await websocket.send_json({"detected": result[0], "positions": result[1].flatten().tolist()})
+        except WebSocketDisconnect:
+            print("disconnected")
 
+    # don't use, changes not applied yet
     async def block_stream_face_recognition(self, websocket: WebSocket):
         await websocket.accept()
 

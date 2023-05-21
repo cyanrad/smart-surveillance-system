@@ -45,7 +45,7 @@ def create_collection(name):
     return collection
 
 
-def get_collection(name):
+def get_collection(name: str):
     return Collection(name)
 
 
@@ -79,20 +79,21 @@ def upload_embeddings_from_dataset(collection, dataset):
 
 
 def upload_embedding_from_img(collection, img, img_class):
-    embeddings = encode.encode_faces(img, 1, 1)
-    if not embeddings:
+    embeddings_and_boxes = encode.encode_faces(img, 1, 1)
+    if not embeddings_and_boxes:
         return False
 
-    embeddings = np.concatenate(embeddings)
+    embeddings = np.concatenate(embeddings_and_boxes[0])
 
     insert_info = collection.insert([img_class, embeddings])
     print(insert_info)
     return True
 
 
+# return: an array of found faces
 def quick_search(collection, img, threshold=0.6):
-    query_vector = encode.encode_faces(img)
-    if not query_vector:
+    embeddings_and_boxes = encode.encode_faces(img)
+    if not embeddings_and_boxes:
         return []
 
     search_params = {
@@ -100,7 +101,7 @@ def quick_search(collection, img, threshold=0.6):
     }
 
     results = collection.search(
-        query_vector[0], "embedding", search_params, limit=1, output_fields=["class"])
+        embeddings_and_boxes[0][0], "embedding", search_params, limit=1, output_fields=["class"])
 
     if not results[0]:
         return []
@@ -112,4 +113,4 @@ def quick_search(collection, img, threshold=0.6):
         else:
             detected_classes.append("")
 
-    return detected_classes
+    return (detected_classes, embeddings_and_boxes[1])

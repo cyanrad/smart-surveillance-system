@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -15,7 +15,7 @@ func (h handler) CreateAccess(w http.ResponseWriter, r *http.Request) {
 
 	//Read request body
 	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
 		log.Fatalln(err)
@@ -51,7 +51,7 @@ func (h handler) ReadAccess(w http.ResponseWriter, r *http.Request) {
 	var access models.Access
 	if result := h.DB.First(&access, "camera_id = ? AND person_id = ?", c_id, p_id); result.Error != nil {
 		//log error and return status BadRequest
-		log.Println(result.Error)
+		// log.Println(result.Error)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Add("Content-Type", "application/json")
 		w.Write([]byte("Failed"))
@@ -70,7 +70,7 @@ func (h handler) UpdateAccess(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(vars["id"])
 
 	//Read request body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Fatalln(err)
 	}

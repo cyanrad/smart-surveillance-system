@@ -49,12 +49,10 @@ async def sendVideo(camera: dict, video_name: str) -> None:
 
             # regulating sent frames count to 15 per second for effeciency
             if not (i == ignore_ratio):
-                print("skipped")
                 i += 1
                 continue
             else:
                 i = 0
-            print("processed")
 
             # Wait for the 'q' key to be pressed to exit
 
@@ -71,6 +69,8 @@ async def sendVideo(camera: dict, video_name: str) -> None:
 
             # getting found faces
             respMap = json.loads(respData)
+            print(respData)
+            print(respMap)
 
             # if len(respMap["detected"]) == 0:
             # print(str(camera["ID"]) + "-no people detected")

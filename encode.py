@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 from PIL import ImageDraw
-from facenet_pytorch import MTCNN, InceptionResnetV1
+from facenet_pytorch import MTCNN, InceptionResnetV1, extract_face
 from torchvision import datasets
 
 import const
@@ -66,12 +66,17 @@ def encode_faces_from_dataset(dataset_path, save_data=False):
 # TODO: now i could be a good engineer and modify this so it raises erros
 #       but am i????
 def encode_faces(img, min_count=0, max_count=20):
-    normalized_faces = mtcnn(img)
+    boxes, _, _ = mtcnn.detect(img, landmarks=True)
 
     # no face is detected
-    if normalized_faces is None:
+    if boxes is None:
         print("no face detected")
         return []
+
+    unbatched_normalized_faces: list[torch.Tensor] = []
+    for box in boxes:
+        unbatched_normalized_faces.append(extract_face(img, box))
+    normalized_faces = torch.stack(unbatched_normalized_faces, dim=0)
 
     # limit number of faces (more faces == more processing)
     face_count = len(normalized_faces)
@@ -82,11 +87,10 @@ def encode_faces(img, min_count=0, max_count=20):
     # -- face encoding
     # converting normalized face to CUDA complient tensor
     # detaching gradient from tensor, then moving data into cpu for conversion, since we use CUDA/GPU
-    embeddings = []
-    embedding = resnet(normalized_faces.cuda()).detach().cpu().numpy()
-    embeddings.append(embedding)
+    embedding = resnet.forward(normalized_faces.cuda()).detach().cpu().numpy()
+    embeddings = [embedding]
 
-    return embeddings
+    return (embeddings, boxes)
 
 
 def draw_box_on_face(img, faces_location):
