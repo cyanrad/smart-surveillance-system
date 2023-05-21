@@ -4,7 +4,6 @@ from PIL import Image
 import io
 
 import milvus
-import os
 
 
 class Server:
@@ -16,8 +15,6 @@ class Server:
             self.collection = milvus.get_collection(collection_name)
         else:
             self.collection = milvus.create_collection(collection_name)
-            # milvus.upload_embeddings_from_dataset(
-            #     self.collection, os.getenv('DATA_FOLDER'))
 
         # starting the API
         self.router = APIRouter()
@@ -54,6 +51,7 @@ class Server:
             while True:
                 img = await self.get_frame(websocket)
                 result = milvus.quick_search(self.collection, img)
+
                 if len(result) == 0:
                     await websocket.send_json({"detected": [], "positions": []})
                 else:

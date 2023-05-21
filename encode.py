@@ -1,6 +1,7 @@
 import torch
 import os
 import numpy as np
+import time
 
 from PIL import ImageDraw
 from facenet_pytorch import MTCNN, InceptionResnetV1, extract_face

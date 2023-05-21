@@ -103,13 +103,22 @@ def quick_search(collection, img, threshold=0.6):
     results = collection.search(
         embeddings_and_boxes[0][0], "embedding", search_params, limit=1, output_fields=["class"])
 
+    # detected but not known
+    # e.g. (["", "", ""], [pos1, pos2, pos3])
     if not results[0]:
-        return []
+        # yes i know this is fucked byond comprihension
+        # i'm just tying to get shit done okay
+        # in short it just returns n empty strings, where n is the number of detected faces in an image
+        # alogside the position of the detected faces
+        return (["" for _ in range(embeddings_and_boxes[0][0].shape[0])], embeddings_and_boxes[1])
 
     detected_classes = []
     for result in results:
+        # detected and known
         if result[0].distance < threshold:
             detected_classes.append(result[0].entity.get('class'))
+        # detected but not confident
+        # e.g. (["", "", ""], [pos1, pos2, pos3])
         else:
             detected_classes.append("")
 

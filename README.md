@@ -1,3 +1,6 @@
+# NOTE
+the README is outdated, working on it atm
+
 # smart-surveillance-system
 inspired by the chinese government.
 btw will crash if you don't have an nvidia GPU...don't @ me
