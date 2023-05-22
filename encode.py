@@ -7,6 +7,7 @@ from PIL import ImageDraw
 from facenet_pytorch import MTCNN, InceptionResnetV1, extract_face
 from torchvision import datasets
 
+from yunet import YuNet
 import const
 
 

@@ -23,9 +23,12 @@ else:
     exit(1)
 
 
-async def sendVideo(camera: dict, video_name: str) -> None:
-    # reading video file
-    video = cv.VideoCapture('./videos/' + video_name)
+# modes
+# 0: video file         (file path to video)
+# 1: streaming link     (ip link to stream)
+# 2: system camera      (integer)
+async def sendVideo(camera: dict, path) -> None:
+    video = cv.VideoCapture(path)
 
     # we want to send 15 frames per second
     fps = video.get(cv.CAP_PROP_FPS)
@@ -50,8 +53,6 @@ async def sendVideo(camera: dict, video_name: str) -> None:
                 continue
             else:
                 i = 0
-
-            # Wait for the 'q' key to be pressed to exit
 
             # converting bytes to jpg
             _, frame_bytes = cv.imencode(".jpg", frame)

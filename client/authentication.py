@@ -18,10 +18,10 @@ def createOwner(name: str) -> dict:
     ).text)
 
 
-def createCamera(owner_id: str) -> dict:
+def createCamera(owner_id: str, is_black_list=False) -> dict:
     return json.loads(requests.post(
         AUTH_URI + "/createCamera",
-        json={"is_black_list": False, "ownerid": owner_id}
+        json={"is_black_list": is_black_list, "ownerid": owner_id}
     ).text)
 
 
