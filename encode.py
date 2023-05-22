@@ -1,7 +1,7 @@
 import torch
 import os
 import numpy as np
-import time
+import cv2 as cv
 
 from PIL import ImageDraw
 from facenet_pytorch import MTCNN, InceptionResnetV1, extract_face
@@ -10,6 +10,15 @@ from torchvision import datasets
 from yunet import YuNet
 import const
 
+
+model = YuNet(
+    modelPath="./yunet/face_detection_yunet_2022mar.onnx",
+    inputSize=[480, 270],
+    confThreshold=0.9,
+    nmsThreshold=0.3,
+    topK=5000,
+    backendId=cv.dnn.DNN_BACKEND_CUDA,
+    targetId=cv.dnn.DNN_TARGET_CUDA)
 
 # Selecting the device GPU/CPU
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -68,12 +77,20 @@ def encode_faces_from_dataset(dataset_path, save_data=False):
 # TODO: now i could be a good engineer and modify this so it raises erros
 #       but am i????
 def encode_faces(img, min_count=0, max_count=20):
-    boxes, _, _ = mtcnn.detect(img, landmarks=True)
+    # boxes, _, _ = mtcnn.detect(img, landmarks=True)
+    results = model.infer(conver_PIL_to_cv(img))
 
     # no face is detected
-    if boxes is None:
+    if results is None:
         print("no face detected")
         return []
+
+    # generating boxes
+    boxes = []
+    for detected in results:
+        bbox = detected[0:4].astype(np.int32)
+        boxes.append([bbox[0], bbox[1], bbox[0]+bbox[2], bbox[1]+bbox[3]])
+    print(boxes)
 
     unbatched_normalized_faces: list[torch.Tensor] = []
     for box in boxes:
@@ -106,3 +123,8 @@ def draw_box_on_face(img, faces_location):
                   "Face-" + str(i), fill=(255, 0, 0))
 
     return img
+
+
+def conver_PIL_to_cv(img):
+    open_cv_image = np.array(img)
+    return open_cv_image[:, :, ::-1].copy()

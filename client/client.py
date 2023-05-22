@@ -37,7 +37,8 @@ async def main():
         ai.sendVideo(cam3, 0),
         ai.sendVideo(cam1, "./videos/ex.mp4"),
         ai.sendVideo(cam2, "./videos/ex.mp4"),
-        ai.sendVideo(cam4, "http://192.168.0.126:81/stream"))
+        ai.sendVideo(cam4, "./videos/ex.mp4"))
+    # ai.sendVideo(cam4, "http://192.168.0.126:81/stream"))
 
 
 if __name__ == "__main__":

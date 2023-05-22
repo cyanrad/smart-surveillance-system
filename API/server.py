@@ -55,7 +55,12 @@ class Server:
                 if len(result) == 0:
                     await websocket.send_json({"detected": [], "positions": []})
                 else:
-                    await websocket.send_json({"detected": result[0], "positions": result[1].flatten().tolist()})
+                    # converting int32 to int
+                    for pos in result[1]:
+                        for i, val in enumerate(pos):
+                            pos[i] = val.item()
+
+                    await websocket.send_json({"detected": result[0], "positions": result[1]})
         except WebSocketDisconnect:
             print("disconnected")
 

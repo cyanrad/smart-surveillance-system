@@ -1,3 +1,4 @@
+import time
 import json
 import os
 import requests
@@ -33,11 +34,17 @@ async def sendVideo(camera: dict, path) -> None:
     # we want to send 15 frames per second
     fps = video.get(cv.CAP_PROP_FPS)
     ignore_ratio, i = 0, 0
-    if fps > 15:
-        ignore_ratio = math.floor(fps/15)
-    print(ignore_ratio)
+    max_fps = 10
+    if fps > max_fps:
+        ignore_ratio = math.floor(fps/max_fps)
+
+    # fps metrics
+    frame_counter = 0
 
     async with websockets.connect(WS_URI + "/stream/" + str(camera["ID"])) as ws:
+        # initial fps counter timer
+        tic = time.time()
+
         # reading video frame by frame
         while True:
             ok, frame = video.read()
@@ -48,11 +55,18 @@ async def sendVideo(camera: dict, path) -> None:
             # regulating sent frames count to 15 per second for effeciency
             if not (i == ignore_ratio):
                 # if display_frame(camera, frame): break
-
                 i += 1
                 continue
             else:
                 i = 0
+
+            frame_counter += 1
+            if frame_counter == max_fps:
+                toc = time.time()
+                print("framerate: ", max_fps/(toc-tic))
+
+                tic = time.time()
+                frame_counter = 0
 
             # converting bytes to jpg
             _, frame_bytes = cv.imencode(".jpg", frame)
@@ -75,10 +89,10 @@ async def sendVideo(camera: dict, path) -> None:
             pos = respMap["positions"]
             for i, detected in enumerate(respMap["detected"]):
                 # getting position of detected face i
-                x1 = pos[i*4]
-                y1 = pos[1+i*4]
-                x2 = pos[2+i*4]
-                y2 = pos[3+i*4]
+                x1 = pos[i][0]
+                y1 = pos[i][1]
+                x2 = pos[i][2]
+                y2 = pos[i][3]
 
                 # if there is a face detected but unkown
                 if detected == "":
@@ -102,6 +116,8 @@ async def sendVideo(camera: dict, path) -> None:
                     # print(str(camera["ID"]) + "-detected: ", detected)
                     draw_box_with_text(frame, x1, y1, x2, y2,
                                        str(camera["ID"]) + "-authorized: " + detected, (0, 255, 0))
+
+            # calculaing fps and resetting timer
 
             display_frame(camera, frame)
 
