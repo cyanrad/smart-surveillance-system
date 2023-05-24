@@ -3,6 +3,7 @@ import os
 import ai
 import authentication
 import asyncio
+import resetDB
 
 from faker import Faker
 fake = Faker()
@@ -10,35 +11,28 @@ fake = Faker()
 
 async def main():
     owner = authentication.createOwner(fake.name())
-    owner2 = authentication.createOwner(fake.name())
-    cam1 = authentication.createCamera(owner["ID"])
-    cam2 = authentication.createCamera(owner["ID"])
-    cam3 = authentication.createCamera(owner["ID"])
-    cam4 = authentication.createCamera(owner2["ID"])
-    print(cam1)
-    print(cam2)
-    print(cam3)
-    print(cam4)
-    personName = "Radwan"
-    person = authentication.createPerson(fake.random_number(
-        digits=7), owner["ID"], personName)
-    print(person)
-
-    # allowing the person on camera 1
-    authentication.createAccess(cam1["ID"], person["ID"])
-
-    # adding classes to db
-    # for face in os.listdir("./faces"):
-    #     for img in os.listdir("./faces/" + face):
-    #         ai.addFace("./faces/" + face + "/" + img, personName +
-    #                    "_" + str(person["ID"]), "0")
+    cam_h = create_camera_and_person("hussain", owner["ID"])
+    cam_p = create_camera_and_person("prime", owner["ID"])
+    cam_t = create_camera_and_person("theo", owner["ID"])
+    cam_v = create_camera_and_person("veritasium", owner["ID"])
 
     await asyncio.gather(
-        ai.sendVideo(cam3, 0),
-        ai.sendVideo(cam1, "./videos/ex.mp4"),
-        ai.sendVideo(cam2, "./videos/ex.mp4"),
-        ai.sendVideo(cam4, "./videos/ex.mp4"))
-    # ai.sendVideo(cam4, "http://192.168.0.126:81/stream"))
+        ai.sendVideo(cam_h, "./videos/devs.mp4")
+    )
+    # ai.sendVideo(cam1, 0),
+    # ai.sendVideo(cam2, "http://192.168.0.126:81/stream"))
+
+
+def create_camera_and_person(name: str, owner_id: int):
+    cam = authentication.createCamera(owner_id)
+    person = authentication.createPerson(
+        fake.random_number(digits=7), owner_id, name)
+
+    for img in os.listdir("./faces/" + name):
+        ai.addFace("./faces/" + name + "/" + img, name +
+                   "_" + str(person["ID"]), str(owner_id))
+
+    return cam
 
 
 if __name__ == "__main__":

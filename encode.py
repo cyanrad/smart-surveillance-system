@@ -26,7 +26,7 @@ print(device)
 
 
 # -- Initializng models (detection & recognition)
-mtcnn = MTCNN(device=device, keep_all=True, factor=0.6, margin=14)
+# mtcnn = MTCNN(device=device, keep_all=True, factor=0.6, margin=14)
 resnet = InceptionResnetV1(pretrained='vggface2', device=device).eval()
 
 
@@ -78,6 +78,7 @@ def encode_faces_from_dataset(dataset_path, save_data=False):
 #       but am i????
 def encode_faces(img, min_count=0, max_count=20):
     # boxes, _, _ = mtcnn.detect(img, landmarks=True)
+    model.setInputSize(img.size)
     results = model.infer(conver_PIL_to_cv(img))
 
     # no face is detected
@@ -90,7 +91,6 @@ def encode_faces(img, min_count=0, max_count=20):
     for detected in results:
         bbox = detected[0:4].astype(np.int32)
         boxes.append([bbox[0], bbox[1], bbox[0]+bbox[2], bbox[1]+bbox[3]])
-    print(boxes)
 
     unbatched_normalized_faces: list[torch.Tensor] = []
     for box in boxes:

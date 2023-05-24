@@ -91,7 +91,7 @@ def upload_embedding_from_img(collection, img, img_class):
 
 
 # return: an array of found faces
-def quick_search(collection, img, threshold=0.6):
+def quick_search(collection, img, threshold=0.3):
     embeddings_and_boxes = encode.encode_faces(img)
     if not embeddings_and_boxes:
         return []
@@ -115,6 +115,7 @@ def quick_search(collection, img, threshold=0.6):
     detected_classes = []
     for result in results:
         # detected and known
+        print(result[0].distance)
         if result[0].distance < threshold:
             detected_classes.append(result[0].entity.get('class'))
         # detected but not confident

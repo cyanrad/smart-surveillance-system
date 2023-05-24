@@ -63,7 +63,7 @@ async def sendVideo(camera: dict, path) -> None:
             frame_counter += 1
             if frame_counter == max_fps:
                 toc = time.time()
-                print("framerate: ", max_fps/(toc-tic))
+                # print("framerate: ", max_fps/(toc-tic))
 
                 tic = time.time()
                 frame_counter = 0
